@@ -26,12 +26,17 @@ create_summary_file() {
     local tenant_name=$(grep "^TENANT=" /etc/environment | cut -d'=' -f2 | tr -d "'\"" || echo "Not Set")
     local ip_addr=$(hostname -I | awk '{print $1}')
     
-    # Try to get AnyDesk ID multiple ways to be sure
-    local anydesk_id=$(anydesk --get-id 2>/dev/null | tr -d ' ' || sudo anydesk --get-id 2>/dev/null | tr -d ' ' || echo "Not Ready")
-    # If it contains non-numeric (except for 'Not Ready'), try to clean it
-    if [[ "$anydesk_id" =~ [0-9] ]]; then
-        anydesk_id=$(echo "$anydesk_id" | grep -o '[0-9]*' | head -1)
-    fi
+    # Try to get AnyDesk ID with retries (similar to Step 1)
+    local anydesk_id="Not Ready"
+    log_step "Retrieving AnyDesk ID for summary..."
+    for i in {1..5}; do
+        local current_id=$(anydesk --get-id 2>/dev/null | tr -d ' ' || sudo anydesk --get-id 2>/dev/null | tr -d ' ' || echo "")
+        if [[ "$current_id" =~ [0-9] ]]; then
+            anydesk_id=$(echo "$current_id" | grep -o '[0-9]*' | head -1)
+            [ -n "$anydesk_id" ] && break
+        fi
+        sleep 2
+    done
     
     {
         echo "==========================================="

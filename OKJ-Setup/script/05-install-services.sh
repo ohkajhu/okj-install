@@ -58,8 +58,8 @@ check_cluster_readiness() {
         # 3. Check for non-ready pods in system namespaces
         local non_ready_system=$(echo "$all_pods" | grep -E "kube-system|flux-system" | grep -vE "Running|Completed" || true)
         
-        # 4. Check for non-ready pods in tools
-        local non_ready_tools=$(echo "$tools_pods" | grep -vE "Running|Completed" || true)
+        # 4. Check for non-ready pods in tools (Filtering out k8s-monitoring/alloy as per user request)
+        local non_ready_tools=$(echo "$tools_pods" | grep -vE "Running|Completed" | grep -vE "k8s-monitoring|alloy" || true)
 
         # Logic: We must have at least SOME pods in tools, AND no system/tools pods are non-ready
         if [ -n "$tools_pods" ] && [ -z "$non_ready_system" ] && [ -z "$non_ready_tools" ]; then

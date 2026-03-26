@@ -55,11 +55,11 @@ check_cluster_readiness() {
         # 2. Check if tools namespace has pods (it might take a while for Flux to create it)
         local tools_pods=$(echo "$all_pods" | grep "tools" || true)
         
-        # 3. Check for non-ready pods in system namespaces
-        local non_ready_system=$(echo "$all_pods" | grep -E "kube-system|flux-system" | grep -vE "Running|Completed" || true)
+        # 3. Check for non-ready pods in system namespaces (Check READY status 1/1)
+        local non_ready_system=$(echo "$all_pods" | grep -E "kube-system|flux-system" | awk '$3 !~ /^[0-9]+\/\1$/ && $4 != "Completed" {print}' || true)
         
-        # 4. Check for non-ready pods in tools (Filtering out k8s-monitoring/alloy as per user request)
-        local non_ready_tools=$(echo "$tools_pods" | grep -vE "Running|Completed" | grep -vE "k8s-monitoring|alloy" || true)
+        # 4. Check for non-ready pods in tools (Check READY status 1/1, skip monitoring)
+        local non_ready_tools=$(echo "$tools_pods" | grep -vE "k8s-monitoring|alloy" | awk '$3 !~ /^[0-9]+\/\1$/ && $4 != "Completed" {print}' || true)
 
         # Logic: We must have at least SOME pods in tools, AND no system/tools pods are non-ready
         if [ -n "$tools_pods" ] && [ -z "$non_ready_system" ] && [ -z "$non_ready_tools" ]; then
@@ -119,6 +119,30 @@ wait_for_crd() {
     log "ERROR" "❌ Timeout waiting for CRD: $crd. CloudNativePG might still be installing."
 }
 
+wait_for_service_endpoints() {
+    local service_name=$1
+    local namespace=$2
+    log "INFO" "⏳ Waiting for service endpoints: $service_name ($namespace)..."
+    local max_attempts=20
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        # Check if the service has endpoints
+        local endpoints=$(sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get endpoints "$service_name" -n "$namespace" -o jsonpath='{.subsets[0].addresses[0].ip}' 2>/dev/null || echo "")
+        
+        if [ -n "$endpoints" ]; then
+            log "SUCCESS" "✅ Service $service_name is ready."
+            return 0
+        fi
+        
+        log "INFO" "     Attempt $attempt/$max_attempts: No endpoints yet. Waiting 5s..."
+        sleep 5
+        ((attempt++))
+    done
+    
+    log "WARN" "⚠️ Service $service_name endpoints not ready after $max_attempts attempts."
+}
+
 section "🚀 Installing Cluster Services"
 check_cluster_readiness
 
@@ -133,6 +157,8 @@ fi
 
 log "INFO" "Applying PostgreSQL manifests..."
 wait_for_crd "clusters.postgresql.cnpg.io"
+# Wait for CNPG Admission Webhook to be ready
+wait_for_service_endpoints "cnpg-webhook-service" "tools"
 sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/okj-pos-pgsql.yaml" -n pgsql
 log "SUCCESS" "PostgreSQL resources applied."
 

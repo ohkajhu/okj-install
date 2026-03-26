@@ -139,7 +139,13 @@ log_step "Running ./script/05-install-services.sh..."
 ./script/05-install-services.sh
 log_success "Cluster services installed."
 
-# --- 7. Final Steps: Summary ---
+# --- 7. Step 7: Shop Configuration ---
+section "Step 7: Shop Configuration"
+log_step "Running ./script/06-config-shop.sh..."
+./script/06-config-shop.sh
+log_success "Shop configuration complete."
+
+# --- 8. Final Steps: Summary ---
 create_summary_file "Ubuntu Server (Native)" "$FLUX_ENV"
 
 # --- Final Summary ---

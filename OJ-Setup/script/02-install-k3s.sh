@@ -189,8 +189,9 @@ log "SUCCESS" "✅ Clock restored: $(date)"
 # 9. VERIFY K3S
 # =============================================================================
 section "🔍 K3s Status"
-systemctl status k3s --no-pager | head -12
-k3s certificate check --output table 2>/dev/null | grep -v "a long while" | head -8
+systemctl status k3s --no-pager | head -n 12 || true
+echo ""
+k3s certificate check --output table 2>/dev/null | grep -v "a long while" | head -n 8 || true
 
 # =============================================================================
 # 10. KUBECTL SETUP

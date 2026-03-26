@@ -135,7 +135,13 @@ log_step "Running ./script/07-startup.sh..."
 ./script/07-startup.sh
 log_success "Startup setup complete."
 
-# --- 8. Final Steps: Summary ---
+# --- 8. Step 8: Shop Configuration ---
+section "Step 8: Shop Configuration"
+log_step "Running ./script/06-config-shop.sh..."
+./script/06-config-shop.sh
+log_success "Shop configuration complete."
+
+# --- 9. Final Steps: Summary ---
 create_summary_file "WSL (Windows Subsystem for Linux)" "$FLUX_ENV"
 
 # --- Final Summary ---

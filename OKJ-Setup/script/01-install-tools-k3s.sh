@@ -246,20 +246,36 @@ install_desktop() {
 }
 
 install_browser() {
-    show_progress "🌐 Installing Midori Browser (Lightweight)..."
+    show_progress "🌐 Installing Google Chrome Browser (.deb Direct)..."
     
-    if is_installed midori; then
-        log "INFO" "✅ Midori is already installed."
-    else
-        log "INFO" "📦 Updating and installing Midori..."
-        sudo apt update -qq
-        sudo apt install -y midori -qq
+    if is_installed google-chrome; then
+        log "INFO" "✅ Google Chrome is already installed."
+        return 0
+    fi
+
+    if [ "$ARCH" != "amd64" ]; then
+        log "WARN" "⚠️ Google Chrome .deb is only available for amd64 (x64). Your architecture is: $ARCH."
+        log "INFO" "📦 Falling back to Firefox via apt..."
+        sudo apt install -y firefox -qq
+        return 0
+    fi
+    
+    log "INFO" "📦 Downloading Google Chrome .deb (Approx 100MB)..."
+    local chrome_deb="/tmp/google-chrome-stable_current_amd64.deb"
+    
+    if wget -q --show-progress "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb" -O "$chrome_deb"; then
+        log "INFO" "📦 Installing Google Chrome (Direct .deb - No Snap)..."
+        # dpkg might fail dependencies, apt install -f fixes them
+        sudo dpkg -i "$chrome_deb" 2>/dev/null || sudo apt install -f -y -qq
         
-        if is_installed midori; then
-            log "SUCCESS" "✅ Midori installation successful."
+        if is_installed google-chrome; then
+            log "SUCCESS" "✅ Google Chrome installation successful (Native .deb)."
+            rm -f "$chrome_deb"
         else
-            log "ERROR" "❌ Midori installation failed."
+            log "ERROR" "❌ Google Chrome installation failed."
         fi
+    else
+        log "ERROR" "❌ Failed to download Google Chrome .deb."
     fi
 }
 

@@ -1,10 +1,41 @@
 #!/bin/bash
-# set -e
+set -euo pipefail
 
-echo "Disabling swap..."
+# --- Colors ---
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# --- Logging Helpers ---
+log() {
+    local level=$1
+    shift
+    local message="$*"
+    case $level in
+        "INFO")    echo -e "${BLUE}[INFO]${NC}  $message" ;;
+        "WARN")    echo -e "${YELLOW}[WARN]${NC}  $message" ;;
+        "ERROR")   echo -e "${RED}[ERROR]${NC} $message" >&2; exit 1 ;;
+        "SUCCESS") echo -e "${GREEN}[SUCCESS]${NC} $message" ;;
+        "STEP")    echo -e "${PURPLE}[STEP]${NC} $message" ;;
+    esac
+}
+
+section() {
+    echo -e "\n${PURPLE}===========================================${NC}"
+    echo -e "${PURPLE}   $*${NC}"
+    echo -e "${PURPLE}===========================================${NC}"
+}
+
+section "🚀 Starting K3s Installation (Server)"
+
+log "INFO" "🚫 Disabling swap..."
 sudo swapoff -a
-echo "Removing swap entry from /etc/fstab..."
 sudo sed -i '/ swap /d' /etc/fstab
+log "SUCCESS" "✅ Swap disabled."
 
 # Check for missing packages
 missing=""
@@ -12,108 +43,94 @@ missing=""
 ! command -v chronyc >/dev/null 2>&1 && missing+=" chrony"
 
 if [ -n "$missing" ]; then
-    echo "Installing missing packages:$missing"
-    sudo apt-get update -qq
-    sudo apt-get install -y $missing
+    log "INFO" "📥 Installing missing packages:$missing"
+    sudo apt-get update -qq && sudo apt-get install -y $missing -qq
 else
-    echo "Both openssl and chrony are already installed."
+    log "SUCCESS" "✅ All required packages are already installed."
 fi
 
-# Create the K3s configuration directory if it doesn't exist
+# Create K3s config
 sudo mkdir -p /etc/rancher/k3s
-
-# Create the registries.yaml file with the mirror configuration
-sudo tee /etc/rancher/k3s/registries.yaml <<EOF
+sudo tee /etc/rancher/k3s/registries.yaml >/dev/null <<EOF
 mirrors:
   "docker.io":
     endpoint:
       - "https://mirror.gcr.io"
 EOF
+log "SUCCESS" "✅ Registry mirror configured."
 
+# Download
 DOWNLOAD_URL="https://storage.googleapis.com/ttm-infra-public/k3s"
-
+log "INFO" "📥 Downloading K3s binaries..."
 wget -q $DOWNLOAD_URL/k3s-1326 -O /usr/local/bin/k3s
-# source: https://github.com/k3s-io/k3s/blob/master/install.sh
 wget -q $DOWNLOAD_URL/k3s-install.sh  -O /usr/local/bin/k3s-install.sh
 wget -q $DOWNLOAD_URL/generate-custom-ca-certs.sh -O /usr/local/bin/generate-custom-ca-certs.sh
 wget -q $DOWNLOAD_URL/kubectl -O /usr/local/bin/kubectl_
 chmod 755 /usr/local/bin/k3s /usr/local/bin/k3s-install.sh /usr/local/bin/generate-custom-ca-certs.sh /usr/local/bin/kubectl_
+log "SUCCESS" "✅ Download complete."
 
+# Install
 export INSTALL_K3S_SKIP_START=true
 export INSTALL_K3S_SKIP_DOWNLOAD="true"
 export INSTALL_K3S_EXEC="--disable=traefik --cluster-cidr=10.96.0.0/16 --service-cidr=10.69.0.0/16"
-# Install K3s Clsuter
+log "INFO" "🏗️ Installing K3s Cluster..."
 /usr/local/bin/k3s-install.sh &> /dev/null
 
-echo "100 years CA certificate generation..."
+log "INFO" "🔐 Generating 100 years CA certificate..."
 /usr/local/bin/generate-custom-ca-certs.sh &>/dev/null
 
-#### DOCKER_MIRROR_URL="http://docker-registry-mirror.home.net"
-#### mkdir -p /etc/rancher/k3s
-#### cat <<EOF | tee /etc/rancher/k3s/registries.yaml > /dev/null
-#### mirrors:
-####   "docker.io":
-####     endpoint:
-####       - "$DOCKER_MIRROR_URL"
-#### EOF
-
+# Certificate Rotation
+log "INFO" "🔄 Rotating certificates..."
 systemctl restart k3s
 sleep 3
-
-systemctl stop chrony
+systemctl stop chrony || true
 
 for i in $(seq 1 3); do
- date -s "+364 days" &>/dev/null
- k3s certificate rotate &>/dev/null
- systemctl restart k3s
- sleep 3
+    log "INFO" "🔄 Rotation pass $i/3..."
+    date -s "+364 days" &>/dev/null
+    k3s certificate rotate &>/dev/null
+    systemctl restart k3s
+    sleep 3
 done
-#### ntpdate time.google.com &>/dev/null
 
-systemctl restart chrony
-chronyc -a makestep
+log "INFO" "🕒 Restoring clock..."
+systemctl restart chrony || true
+if command -v chronyc >/dev/null 2>&1; then
+    chronyc -a makestep || true
+fi
 systemctl restart k3s
-systemctl status k3s --no-pager | head -12
-k3s certificate check --output table | grep -v "a long while"| head -8
-#####
+log "SUCCESS" "✅ Clock restored: $(date)"
 
-rm -rf /usr/local/bin/kubectl
+# Kubectl setup
+log "INFO" "⌨️ Setting up kubectl..."
+rm -f /usr/local/bin/kubectl
 cd /usr/local/bin
 mv kubectl_ kubectl
-ln -s kubectl k
-mkdir $HOME/.kube
-k3s kubectl config view  --raw | sed  "s/127\.0\.0\.1/$(hostname -I|awk {'print $1'})/g"  > $HOME/.kube/config
-chmod 600 $HOME/.kube/config
-echo ""
-#### cat $HOME/.kube/config
-echo ""
+ln -sf kubectl k
+mkdir -p "$HOME/.kube"
+k3s kubectl config view --raw | sed "s/127\.0\.0\.1/$(hostname -I | awk '{print $1}')/g" > "$HOME/.kube/config"
+chmod 600 "$HOME/.kube/config"
 
-echo -n "Waiting for k3s components running"
+# Wait
+log "INFO" "⏳ Waiting for K3s components..."
 while true; do
-  count=$(crictl ps | grep Running | wc -l)
-  if [ "$count" -ge 3 ]; then
-    break
-  fi
-  echo -n "."
-  sleep 5
+    count=$(crictl ps 2>/dev/null | grep -c Running || true)
+    if [ "$count" -ge 3 ]; then
+        break
+    fi
+    echo -n "."
+    sleep 5
 done
-echo ""
+echo " ready."
 
-echo ""
-k rollout restart deployment  -n kube-system
+# Rollout
+log "INFO" "🔄 Restarting system deployments..."
+k rollout restart deployment -n kube-system
 sleep 1
-kubectl wait -n kube-system pod -l k8s-app=kube-dns --for=condition=ready --timeout=60s &> /dev/null
-k get node -o wide
-echo ""
-k get pod -A
-echo ""
+kubectl wait -n kube-system pod -l k8s-app=kube-dns --for=condition=ready --timeout=90s &> /dev/null || true
 
-echo ""
-date
-echo ""
-echo "source <(kubectl completion bash) ;complete -F __start_kubectl k"
-echo ""
-
+# Patch CoreDNS
+log "INFO" "🛠️ Patching CoreDNS NodeHosts..."
 kubectl get configmap coredns -n kube-system -o json | \
 jq --arg ip1 "125.254.54.194" '
   .data.NodeHosts |= (
@@ -129,6 +146,8 @@ jq --arg ip1 "125.254.54.194" '
       ]
     | join("\n")
   )
-' | kubectl apply -f -
+' | kubectl apply -f - && log "SUCCESS" "✅ CoreDNS NodeHosts patched."
 
-echo "apply net host"
+section "🏁 K3s Installation Complete"
+k get node -o wide
+log "INFO" "Add to shell : source <(kubectl completion bash) ;complete -F __start_kubectl k"

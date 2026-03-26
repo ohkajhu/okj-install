@@ -58,7 +58,7 @@ check_root() {
 }
 
 confirm_uninstall() {
-    echo -e "${YELLOW}⚠️  WARNING: This will remove the following components:${NC}"
+    echo -e "${YELLOW}⚠️ WARNING: This will remove the following components:${NC}"
     echo "   • pgAdmin4 Web"
     echo "   • pgAdmin4 Server"
     echo "   • pgAdmin4 Apache configuration"
@@ -66,7 +66,7 @@ confirm_uninstall() {
     echo "   • pgAdmin4 repository and GPG key"
     echo "   • Apache port configuration backup (if exists)"
     echo
-    echo -e "${BLUE}ℹ️  Note: The following will be preserved:${NC}"
+    echo -e "${BLUE}ℹ️ Note: The following will be preserved:${NC}"
     echo "   • Apache web server"
     echo "   • PostgreSQL client (may be used by other applications)"
     echo "   • wsgi module (may be used by other applications)"
@@ -86,7 +86,7 @@ is_installed() {
 }
 
 remove_pgadmin4_apache_config() {
-    show_progress "🗑️  Removing pgAdmin4 Apache configuration..."
+    show_progress "🗑️ Removing pgAdmin4 Apache configuration..."
     
     # Disable and remove pgAdmin4 Apache config
     if [ -f /etc/apache2/conf-enabled/pgadmin4.conf ]; then
@@ -96,19 +96,19 @@ remove_pgadmin4_apache_config() {
     
     # Remove config files
     if [ -f /etc/apache2/conf-available/pgadmin4.conf ]; then
-        log "INFO" "🗑️  Removing pgAdmin4 Apache config file..."
+        log "INFO" "🗑️ Removing pgAdmin4 Apache config file..."
         sudo rm -f /etc/apache2/conf-available/pgadmin4.conf
         log "SUCCESS" "✅ pgAdmin4 Apache config removed."
     fi
     
     if [ -f /etc/apache2/conf-enabled/pgadmin4.conf ]; then
-        log "INFO" "🗑️  Removing enabled symlink..."
+        log "INFO" "🗑️ Removing enabled symlink..."
         sudo rm -f /etc/apache2/conf-enabled/pgadmin4.conf
     fi
     
     # Remove any VirtualHost entries
     if [ -f /etc/apache2/sites-enabled/pgadmin4.conf ]; then
-        log "INFO" "🗑️  Removing pgAdmin4 VirtualHost..."
+        log "INFO" "🗑️ Removing pgAdmin4 VirtualHost..."
         sudo a2dissite pgadmin4 2>/dev/null || true
         sudo rm -f /etc/apache2/sites-available/pgadmin4.conf
         sudo rm -f /etc/apache2/sites-enabled/pgadmin4.conf
@@ -130,7 +130,7 @@ restore_apache_port() {
         log "SUCCESS" "✅ Apache port configuration restored."
         port_restored=true
     else
-        log "INFO" "ℹ️  No backup found. Apache port configuration unchanged."
+        log "INFO" "ℹ️ No backup found. Apache port configuration unchanged."
     fi
     
     # If port was restored, also restore VirtualHost files to default port 80
@@ -162,7 +162,7 @@ restore_apache_port() {
 }
 
 remove_pgadmin4_packages() {
-    show_progress "🗑️  Removing pgAdmin4 packages..."
+    show_progress "🗑️ Removing pgAdmin4 packages..."
     
     # Remove pgAdmin4 Web
     if dpkg -l | grep -q "^ii.*pgadmin4-web.*"; then
@@ -170,7 +170,7 @@ remove_pgadmin4_packages() {
         sudo apt remove --purge -y pgadmin4-web 2>/dev/null || true
         log "SUCCESS" "✅ pgAdmin4 Web removed."
     else
-        log "INFO" "ℹ️  pgAdmin4 Web is not installed."
+        log "INFO" "ℹ️ pgAdmin4 Web is not installed."
     fi
     
     # Remove pgAdmin4 Server
@@ -179,13 +179,13 @@ remove_pgadmin4_packages() {
         sudo apt remove --purge -y pgadmin4-server 2>/dev/null || true
         log "SUCCESS" "✅ pgAdmin4 Server removed."
     else
-        log "INFO" "ℹ️  pgAdmin4 Server is not installed."
+        log "INFO" "ℹ️ pgAdmin4 Server is not installed."
     fi
     
     # Remove PostgreSQL client if it was installed by pgAdmin4
     # Note: Only remove if it seems to be installed only for pgAdmin4
     # We'll be conservative and not remove it automatically
-    log "INFO" "ℹ️  PostgreSQL client will be preserved (may be used by other applications)"
+    log "INFO" "ℹ️ PostgreSQL client will be preserved (may be used by other applications)"
 }
 
 remove_pgadmin4_data() {
@@ -193,21 +193,21 @@ remove_pgadmin4_data() {
     
     # Remove pgAdmin4 data directory
     if [ -d /var/lib/pgadmin ]; then
-        log "INFO" "🗑️  Removing pgAdmin4 data directory..."
+        log "INFO" "🗑️ Removing pgAdmin4 data directory..."
         sudo rm -rf /var/lib/pgadmin 2>/dev/null || true
         log "SUCCESS" "✅ pgAdmin4 data directory removed."
     fi
     
     # Remove pgAdmin4 log directory
     if [ -d /var/log/pgadmin ]; then
-        log "INFO" "🗑️  Removing pgAdmin4 log directory..."
+        log "INFO" "🗑️ Removing pgAdmin4 log directory..."
         sudo rm -rf /var/log/pgadmin 2>/dev/null || true
         log "SUCCESS" "✅ pgAdmin4 log directory removed."
     fi
     
     # Remove pgAdmin4 installation directory (if exists)
     if [ -d /usr/pgadmin4 ]; then
-        log "INFO" "🗑️  Removing pgAdmin4 installation directory..."
+        log "INFO" "🗑️ Removing pgAdmin4 installation directory..."
         sudo rm -rf /usr/pgadmin4 2>/dev/null || true
         log "SUCCESS" "✅ pgAdmin4 installation directory removed."
     fi
@@ -216,18 +216,18 @@ remove_pgadmin4_data() {
 }
 
 remove_pgadmin4_repository() {
-    show_progress "🗑️  Removing pgAdmin4 repository..."
+    show_progress "🗑️ Removing pgAdmin4 repository..."
     
     # Remove repository file
     if [ -f /etc/apt/sources.list.d/pgadmin4.list ]; then
-        log "INFO" "🗑️  Removing pgAdmin4 repository file..."
+        log "INFO" "🗑️ Removing pgAdmin4 repository file..."
         sudo rm -f /etc/apt/sources.list.d/pgadmin4.list
         log "SUCCESS" "✅ Repository file removed."
     fi
     
     # Remove GPG key
     if [ -f /usr/share/keyrings/packages-pgadmin-org.gpg ]; then
-        log "INFO" "🗑️  Removing pgAdmin4 GPG key..."
+        log "INFO" "🗑️ Removing pgAdmin4 GPG key..."
         sudo rm -f /usr/share/keyrings/packages-pgadmin-org.gpg
         log "SUCCESS" "✅ GPG key removed."
     fi
@@ -365,13 +365,13 @@ main() {
     log "INFO" "🎯 Starting uninstall process..."
     echo
     
-    remove_pgadmin4_apache_config || { log "WARN" "⚠️  Apache config removal encountered issues"; }
-    remove_pgadmin4_packages || { log "WARN" "⚠️  Package removal encountered issues"; }
-    remove_pgadmin4_data || { log "WARN" "⚠️  Data removal encountered issues"; }
-    remove_pgadmin4_repository || { log "WARN" "⚠️  Repository removal encountered issues"; }
-    restore_apache_port || { log "WARN" "⚠️  Apache port restore encountered issues"; }
-    restart_apache || { log "WARN" "⚠️  Apache restart encountered issues"; }
-    cleanup_system || { log "WARN" "⚠️  System cleanup encountered issues"; }
+    remove_pgadmin4_apache_config || { log "WARN" "⚠️ Apache config removal encountered issues"; }
+    remove_pgadmin4_packages || { log "WARN" "⚠️ Package removal encountered issues"; }
+    remove_pgadmin4_data || { log "WARN" "⚠️ Data removal encountered issues"; }
+    remove_pgadmin4_repository || { log "WARN" "⚠️ Repository removal encountered issues"; }
+    restore_apache_port || { log "WARN" "⚠️ Apache port restore encountered issues"; }
+    restart_apache || { log "WARN" "⚠️ Apache restart encountered issues"; }
+    cleanup_system || { log "WARN" "⚠️ System cleanup encountered issues"; }
     verify_removal
     show_summary
     

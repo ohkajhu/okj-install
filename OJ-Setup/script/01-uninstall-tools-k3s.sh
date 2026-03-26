@@ -58,7 +58,7 @@ check_root() {
 }
 
 confirm_uninstall() {
-    echo -e "${YELLOW}⚠️  WARNING: This will remove the following components:${NC}"
+    echo -e "${YELLOW}⚠️ WARNING: This will remove the following components:${NC}"
     echo "   • XFCE4 Desktop Environment"
     echo "   • XRDP Remote Desktop"
     echo "   • FluxCD"
@@ -70,7 +70,7 @@ confirm_uninstall() {
     echo "   • AnyDesk"
     echo "   • Build dependencies"
     echo
-    echo -e "${BLUE}ℹ️  Note: The following will be preserved:${NC}"
+    echo -e "${BLUE}ℹ️ Note: The following will be preserved:${NC}"
     echo "   • Git (may be used by other applications)"
     echo "   • SSH (system essential service)"
     echo
@@ -92,7 +92,7 @@ service_exists() {
 }
 
 remove_desktop() {
-    show_progress "🗑️  Removing XFCE4 Desktop and XRDP..."
+    show_progress "🗑️ Removing XFCE4 Desktop and XRDP..."
     
     # Stop and disable XRDP service
     if service_exists "xrdp"; then
@@ -299,7 +299,7 @@ remove_build_dependencies() {
         "libssh2-1-dev"
     )
     
-    log "WARN" "⚠️  Note: This will only remove build dependencies, not system essentials."
+    log "WARN" "⚠️ Note: This will only remove build dependencies, not system essentials."
     log "INFO" "📦 Removing development packages..."
     
     for dep in "${build_deps[@]}"; do
@@ -346,7 +346,7 @@ verify_removal() {
         local name=$(echo "$tool_info" | cut -d: -f2)
         
         if is_installed "$tool"; then
-            log "WARN" "⚠️  $name: Still installed"
+            log "WARN" "⚠️ $name: Still installed"
             still_installed+=("$name")
         else
             log "SUCCESS" "✅ $name: Successfully removed"
@@ -355,7 +355,7 @@ verify_removal() {
     
     # Check custom curl
     if [ -f "/usr/local/bin/curl" ]; then
-        log "WARN" "⚠️  Custom curl: Still installed"
+        log "WARN" "⚠️ Custom curl: Still installed"
         still_installed+=("curl")
     else
         log "SUCCESS" "✅ Custom curl: Successfully removed"
@@ -363,7 +363,7 @@ verify_removal() {
     
     # Check XRDP service
     if service_exists "xrdp"; then
-        log "WARN" "⚠️  XRDP service: Still exists"
+        log "WARN" "⚠️ XRDP service: Still exists"
         still_installed+=("XRDP")
     else
         log "SUCCESS" "✅ XRDP service: Successfully removed"
@@ -371,7 +371,7 @@ verify_removal() {
     
     # Check AnyDesk
     if command -v anydesk >/dev/null 2>&1 || dpkg -l | grep -q "^ii.*anydesk" || service_exists "anydesk"; then
-        log "WARN" "⚠️  AnyDesk: Still installed"
+        log "WARN" "⚠️ AnyDesk: Still installed"
         still_installed+=("AnyDesk")
     else
         log "SUCCESS" "✅ AnyDesk: Successfully removed"
@@ -380,7 +380,7 @@ verify_removal() {
     if [ ${#still_installed[@]} -eq 0 ]; then
         log "SUCCESS" "✅ All tools have been successfully removed."
     else
-        log "WARN" "⚠️  Some tools may require manual removal: ${still_installed[*]}"
+        log "WARN" "⚠️ Some tools may require manual removal: ${still_installed[*]}"
     fi
 }
 
@@ -432,16 +432,16 @@ main() {
     log "INFO" "🎯 Starting uninstall process..."
     echo
     
-    remove_desktop || { log "WARN" "⚠️  Desktop removal encountered issues"; }
-    remove_fluxcd || { log "WARN" "⚠️  FluxCD removal encountered issues"; }
-    remove_yq || { log "WARN" "⚠️  yq removal encountered issues"; }
-    remove_kustomize || { log "WARN" "⚠️  Kustomize removal encountered issues"; }
-    remove_helm || { log "WARN" "⚠️  Helm removal encountered issues"; }
-    remove_curl || { log "WARN" "⚠️  curl removal encountered issues"; }
-    remove_kubeconform || { log "WARN" "⚠️  Kubeconform removal encountered issues"; }
-    remove_anydesk || { log "WARN" "⚠️  AnyDesk removal encountered issues"; }
-    remove_build_dependencies || { log "WARN" "⚠️  Build dependencies removal encountered issues"; }
-    cleanup_system || { log "WARN" "⚠️  System cleanup encountered issues"; }
+    remove_desktop || { log "WARN" "⚠️ Desktop removal encountered issues"; }
+    remove_fluxcd || { log "WARN" "⚠️ FluxCD removal encountered issues"; }
+    remove_yq || { log "WARN" "⚠️ yq removal encountered issues"; }
+    remove_kustomize || { log "WARN" "⚠️ Kustomize removal encountered issues"; }
+    remove_helm || { log "WARN" "⚠️ Helm removal encountered issues"; }
+    remove_curl || { log "WARN" "⚠️ curl removal encountered issues"; }
+    remove_kubeconform || { log "WARN" "⚠️ Kubeconform removal encountered issues"; }
+    remove_anydesk || { log "WARN" "⚠️ AnyDesk removal encountered issues"; }
+    remove_build_dependencies || { log "WARN" "⚠️ Build dependencies removal encountered issues"; }
+    cleanup_system || { log "WARN" "⚠️ System cleanup encountered issues"; }
     verify_removal
     show_summary
     

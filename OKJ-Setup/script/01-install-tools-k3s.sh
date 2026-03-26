@@ -129,7 +129,7 @@ check_dependencies() {
     done
     
     if [ ${#missing[@]} -ne 0 ]; then
-        log "WARN" "⚠️  Missing dependencies: ${missing[*]}"
+        log "WARN" "⚠️ Missing dependencies: ${missing[*]}"
         log "INFO" "📦 Installing dependencies..."
         sudo apt update -qq
         sudo apt install -y "${missing[@]}"
@@ -156,7 +156,7 @@ download_with_retry() {
             return 0
         fi
         
-        log "WARN" "⚠️  Download failed. Attempt $attempt"
+        log "WARN" "⚠️ Download failed. Attempt $attempt"
         ((attempt++))
         
         if [ $attempt -le $max_attempts ]; then
@@ -206,7 +206,7 @@ update_system() {
     log "INFO" "📦 Updating package lists..."
     sudo apt update -qq
     
-    log "INFO" "⬆️  Upgrading packages..."
+    log "INFO" "⬆️ Upgrading packages..."
     sudo apt upgrade -y -qq
     
     log "INFO" "🧹 Cleaning up package cache..."
@@ -217,7 +217,7 @@ update_system() {
 }
 
 install_desktop() {
-    show_progress "🖥️  Installing XFCE4 Desktop and XRDP..."
+    show_progress "🖥️ Installing XFCE4 Desktop and XRDP..."
     
     if dpkg -l | grep -q "^ii.*xfce4.*"; then
         log "INFO" "✅ XFCE4 is already installed."
@@ -325,7 +325,7 @@ install_fluxcd() {
             log "INFO" "✅ FluxCD is already installed (Version: $version)"
             return 0
         else
-            log "WARN" "⚠️  FluxCD version mismatch (installed: $version, required: $REQUIRED_FLUX_VERSION)"
+            log "WARN" "⚠️ FluxCD version mismatch (installed: $version, required: $REQUIRED_FLUX_VERSION)"
             log "INFO" "🔄 Reinstalling FluxCD $REQUIRED_FLUX_VERSION..."
         fi
     fi

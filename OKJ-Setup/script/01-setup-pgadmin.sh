@@ -1384,7 +1384,7 @@ EXPECT_EOF
     fi
     
     if [ "$conf_exists" = false ]; then
-        log "WARN" "⚠️  pgAdmin4 Apache configuration file not found in standard locations."
+        log "WARN" "⚠️ pgAdmin4 Apache configuration file not found in standard locations."
         log "INFO" "💡 Checking for alternative configuration locations..."
         # Check if config might be in a different location
         local found_configs=$(find /etc/apache2 -name "*pgadmin*" -type f 2>/dev/null)

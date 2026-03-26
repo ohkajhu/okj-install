@@ -72,7 +72,7 @@ if ! command -v jq >/dev/null 2>&1; then
     sudo apt-get update -qq && sudo apt-get install -y jq -qq
 fi
 
-kubectl get configmap coredns -n kube-system -o json | \
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get configmap coredns -n kube-system -o json | \
 jq --arg ip1 "125.254.54.194" '
   .data.NodeHosts |= (
     split("\n")
@@ -87,15 +87,15 @@ jq --arg ip1 "125.254.54.194" '
       ]
     | join("\n")
   )
-' | kubectl apply -f - && log "SUCCESS" "✅ CoreDNS ConfigMap updated."
+' | KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl apply -f - && log "SUCCESS" "✅ CoreDNS ConfigMap updated."
 
 # --- 4. Verification ---
 log "INFO" "✅  4. Final Verification and component restart..."
-kubectl rollout restart deployment -n kube-system
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl rollout restart deployment -n kube-system
 
 log "INFO" "   - Waiting for CoreDNS (90s timeout)..."
-kubectl wait -n kube-system pod -l k8s-app=kube-dns --for=condition=ready --timeout=90s && log "SUCCESS" "✅ CoreDNS ready."
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl wait -n kube-system pod -l k8s-app=kube-dns --for=condition=ready --timeout=90s && log "SUCCESS" "✅ CoreDNS ready."
 
 section "🎉 RECOVERY COMPLETE"
 log "INFO" "➡️  Node Status:"
-kubectl get node -o wide
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get node -o wide

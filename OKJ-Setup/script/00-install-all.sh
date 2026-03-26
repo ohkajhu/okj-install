@@ -23,10 +23,10 @@ create_summary_file() {
     local summary_file="$HOME/okj-install/install-summary.txt"
     local env_type=$1
     local flux_env=$2
-    local tenant_name=$(grep -oP "(?<=TENANT_NAME=).*" /etc/environment 2>/dev/null || echo "Not Set")
+    local tenant_name=$(grep "^TENANT=" /etc/environment | cut -d'=' -f2 | tr -d "'\"" || echo "Not Set")
     local ip_addr=$(hostname -I | awk '{print $1}')
     
-    local anydesk_id=$(anydesk --get-id 2>/dev/null || echo "Not Ready")
+    local anydesk_id=$(sudo anydesk --get-id 2>/dev/null | awk '{print $1}' || echo "Not Ready")
     
     {
         echo "==========================================="
@@ -41,7 +41,7 @@ create_summary_file() {
         echo "Local IP (SSH/pgAdmin): $ip_addr"
         echo "AnyDesk ID            : $anydesk_id"
         echo "User (SSH/AnyDesk)    : okjadmin"
-        echo "AnyDesk Password      : (Manual setup required in AnyDesk client)"
+        echo "AnyDesk Password      : mu,wvmu2023"
         echo ""
         echo "--- SERVICES ---"
         echo "pgAdmin4 URL : http://$ip_addr:8080"
@@ -50,7 +50,7 @@ create_summary_file() {
         echo ""
         echo "--- CLUSTER STATUS ---"
         echo "Nodes:"
-        kubectl get nodes --no-headers 2>/dev/null | awk '{print "  - " $1 " (" $2 ")"}' || echo "  - No nodes found"
+        KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get nodes --no-headers 2>/dev/null | awk '{print "  - " $1 " (" $2 ")"}' || echo "  - No nodes found"
         echo ""
         echo "==========================================="
     } > "$summary_file"
@@ -132,7 +132,7 @@ echo -e "You can find the access details at:"
 echo -e "${YELLOW}cat ~/okj-install/install-summary.txt${NC}"
 echo -e "-------------------------------------------"
 echo -e "${CYAN}Node Status:${NC}"
-kubectl get node -o wide 2>/dev/null || echo "Unable to get node status."
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get node -o wide 2>/dev/null || echo "Unable to get node status."
 echo -e "\n${CYAN}Pod Status (All Namespaces):${NC}"
-kubectl get pod -A 2>/dev/null || echo "Unable to get pod status."
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get pod -A 2>/dev/null || echo "Unable to get pod status."
 echo -e "==========================================="

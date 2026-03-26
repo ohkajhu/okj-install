@@ -71,8 +71,10 @@ check_cluster_readiness() {
         if [ -z "$tools_pods" ]; then
             log "INFO" "   Attempt $attempt/$max_attempts: Waiting for 'tools' namespace pods (CloudNativePG, Ingress, etc.) to start..."
         else
-            local count=$(echo -e "${non_ready_system}\n${non_ready_tools}" | grep -v "^$" | wc -l || echo 0)
+            local non_ready_list=$(echo -e "${non_ready_system}\n${non_ready_tools}" | grep -v "^$" || true)
+            local count=$(echo "$non_ready_list" | wc -l || echo 0)
             log "INFO" "   Attempt $attempt/$max_attempts: $count core pods are not ready yet. Waiting 10s..."
+            echo -e "$non_ready_list" | head -n 5 || true
         fi
         
         sleep 10
@@ -80,6 +82,28 @@ check_cluster_readiness() {
     done
     
     log "WARN" "⚠️  Timeout waiting for system pods. Proceeding anyway..."
+}
+
+wait_for_ingress_webhook() {
+    log "INFO" "⏳ Waiting for Ingress Admission Webhook endpoints to be ready..."
+    local max_attempts=20
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        # Check if the admission service has endpoints
+        local endpoints=$(sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get endpoints ingress-nginx-controller-admission -n tools -o jsonpath='{.subsets[0].addresses[0].ip}' 2>/dev/null || echo "")
+        
+        if [ -n "$endpoints" ]; then
+            log "SUCCESS" "✅ Ingress Admission Webhook is ready."
+            return 0
+        fi
+        
+        log "INFO" "     Attempt $attempt/$max_attempts: Webhook endpoints not ready yet. Waiting 5s..."
+        sleep 5
+        ((attempt++))
+    done
+    
+    log "WARN" "⚠️ Webhook endpoints not ready after $max_attempts attempts. Retrying application may be needed."
 }
 
 wait_for_crd() {
@@ -126,6 +150,8 @@ sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/redis.yaml" -n apps
 log "SUCCESS" "Redis resources applied."
 
 log "INFO" "Applying Asynqmon manifests..."
+# Ingress-nginx webhook race condition fix
+wait_for_ingress_webhook
 sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/asynqmon.yaml" -n apps
 log "SUCCESS" "Asynqmon resources applied."
 

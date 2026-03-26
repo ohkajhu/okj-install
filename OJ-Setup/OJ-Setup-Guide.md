@@ -68,65 +68,54 @@ curl -sSL https://raw.githubusercontent.com/ohkajhu/okj-install/main/bootstrap.s
 
 ---
 
-## ขั้นตอนที่ 3: รันสคริปต์ติดตั้งระบบ (ใน WSL)
+## ขั้นตอนที่ 3: รันสคริปต์ติดตั้งระบบ (วิธีที่แนะนำ - เร็วที่สุด) 🚀
 
-ทำตามลำดับต่อไปนี้:
-
-### 3.1 ติดตั้งเครื่องมือพื้นฐาน (Tools & Utilities)
-สคริปต์นี้จะลง Desktop Environment (XFCE4), AnyDesk, Git, Docker tools, FluxCD, Helm, Kubeconform ฯลฯ
+เราได้ทำสคริปต์ **Master Installer** เพื่อรันขั้นตอนการติดตั้งทั้งหมด (01, 01-setup, 02, 03 และ Flux Bootstrap) ให้โดยอัตโนมัติในคำสั่งเดียว:
 
 ```bash
 cd ~/okj-install/script
-   ./01-install-tools-k3s.sh
+./00-install-all.sh
 ```
-> **สิ่งที่เกิดขึ้น:** สคริปต์จะอัปเดตระบบและติดตั้งโปรแกรมจำเป็น ใช้เวลาสักพัก
-
-ติดตั้ง pgAdmin ด้วยให้รัน `./01-setup-pgadmin.sh`
-
-```bash
-   ./01-setup-pgadmin.sh
-```
-
-### 3.2 ติดตั้ง Kubernetes (K3s)
-สคริปต์นี้จะลง K3s Cluster, ปิด Swap, และตั้งค่า Certificate
-
-```bash
-sudo ./02-install-k3s.sh
-```
-> **สิ่งที่เกิดขึ้น:**
-> - ติดตั้ง K3s
-> - สร้าง Alias `k` แทน `kubectl`
-> - สร้างไฟล์ Config ให้พร้อมใช้งาน
-> - รอจนกว่าจะขึ้นข้อความว่า Pods ทั้งหมด Running
-
-### 3.3 ตั้งค่า Environment ประจำสาขา
-ขั้นตอนนี้สำคัญมาก เป็นการระบุว่าเครื่องนี้คือ **สาขาไหน**
-
-```bash
-   ./03-set-env.sh
-```
-> **สิ่งที่ต้องทำ:**
-> - กรอก **TENANT NAME:** ชื่อสาขาภาษาอังกฤษ (เช่น `OJ00`, `OJ01`)
->
-> *สคริปต์จะแก้ไขไฟล์ `/etc/environment` และ `/etc/hosts` ให้อัตโนมัติเพื่อชี้โดเมนไปยัง IP Server กลาง*
+> **สิ่งที่สคริปต์นี้จะทำ:**
+> 1. ติดตั้ง Tools พื้นฐาน (`01-install-tools-k3s.sh`)
+> 2. ติดตั้ง pgAdmin4 (`01-setup-pgadmin.sh`)
+> 3. ติดตั้ง K3s Cluster (`02-install-k3s.sh`)
+> 4. ตั้งค่า Environment ประจำสาขา (`03-set-env.sh`)
+> 5. แตกไฟล์และติดตั้ง Flux Bootstrap (`install-stg.sh` หรือ `install-prd.sh`)
 
 ---
 
-## ขั้นตอนที่ 4: เชื่อมต่อ GitOps (FluxCD)
+## ขั้นตอนการติดตั้ง (กรณีต้องการรันแยกทีละขั้นตอน)
 
-เพื่อให้ระบบดึง Code และ Config ล่าสุดมาจาก Git Repository
+หากคุณต้องการรันแยกเอง สามารถทำได้ตามลำดับดังนี้:
 
-1. **แตกไฟล์ Bootstrap**:
-   ```bash
-   cd ~
-   tar -xvf ~/okj-install/flux-bootstrap.tar.gz --no-same-owner --no-same-permissions
-   ```
+### 3.1 ติดตั้งเครื่องมือพื้นฐาน (Tools & Utilities)
+```bash
+cd ~/okj-install/script
+./01-install-tools-k3s.sh
+./01-setup-pgadmin.sh
+```
 
-2. **รันสคริปต์ติดตั้ง Flux**:
-   ```bash
-   cd .bootstrap
-   sudo ./install-prd.sh
-   ```
+### 3.2 ติดตั้ง Kubernetes (K3s)
+```bash
+sudo ./02-install-k3s.sh
+```
+
+### 3.3 ตั้งค่า Environment ประจำสาขา
+```bash
+./03-set-env.sh
+```
+
+### 3.4 ติดตั้ง Flux Bootstrap
+```bash
+cd ~
+tar -xvf ~/okj-install/flux-bootstrap.tar.gz --no-same-owner --no-same-permissions
+cd .bootstrap
+# เลือกสคริปต์ตามสภาพแวดล้อม
+sudo ./install-stg.sh  # สำหรับ Staging
+# หรือ
+sudo ./install-prd.sh  # สำหรับ Production
+```
    
 ---
 

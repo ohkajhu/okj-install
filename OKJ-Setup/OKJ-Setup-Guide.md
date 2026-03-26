@@ -53,33 +53,52 @@ cd ~/okj-install/script
 chmod +x *.sh
 ```
 
-## ลำดับการติดตั้งที่แนะนำ
-1. **ติดตั้งชุดเครื่องมือพื้นฐาน**
+## ลำดับการติดตั้ง (วิธีที่แนะนำ - เร็วที่สุด) 🚀
 
+เราได้ทำสคริปต์ **Master Installer** เพื่อรันขั้นตอน 01, 02, 03 และ Flux Bootstrap ให้โดยอัตโนมัติในคำสั่งเดียว:
+
+```bash
+cd ~/okj-install/script
+./00-install-all.sh
+```
+> **สิ่งที่สคริปต์นี้จะทำ:**
+> 1. ติดตั้ง Tools พื้นฐาน (`01-install-tools-k3s.sh`)
+> 2. ติดตั้ง pgAdmin4 (`01-setup-pgadmin.sh`)
+> 3. ติดตั้ง K3s Cluster (`02-install-k3s.sh`)
+> 4. ตั้งค่า Environment ประจำสาขา (`03-set-env.sh`)
+> 5. แตกไฟล์และติดตั้ง Flux Bootstrap (`install-stg.sh` หรือ `install-prd.sh`)
+
+---
+
+## ลำดับการติดตั้ง (กรณีต้องการรันแยกทีละขั้นตอน)
+
+หากคุณต้องการรันแยกเอง สามารถทำได้ตามลำดับดังนี้:
+
+1. **ติดตั้งเครื่องมือพื้นฐาน**
    ```bash
    ./01-install-tools-k3s.sh
    ./01-setup-pgadmin.sh
    ```
-   
-2. **ติดตั้ง K3s และสร้าง kubeconfig**
 
+2. **ติดตั้ง K3s**
    ```bash
    sudo ./02-install-k3s.sh
    ```
 
-3. **ตั้งค่า Environment และ hosts สำหรับแต่ละสาขา**
-
+3. **ตั้งค่า Environment**
    ```bash
    ./03-set-env.sh
    ```
 
-4. **ติดตั้ง Bootstrap Flux**
-
+4. **ติดตั้ง Flux Bootstrap**
    ```bash
    cd ~
    tar -xvf ~/okj-install/flux-bootstrap.tar.gz --no-same-owner --no-same-permissions
    cd .bootstrap
-   sudo ./install-prd.sh
+   # เลือกสคริปต์ตามสภาพแวดล้อม
+   sudo ./install-stg.sh  # สำหรับ Staging
+   # หรือ
+   sudo ./install-prd.sh  # สำหรับ Production
    ```
 
 5. **ติดตั้งบริการต่าง ๆ ในคลัสเตอร์**

@@ -37,11 +37,18 @@ if ! command -v git >/dev/null 2>&1; then
     if ! sudo -v &>/dev/null; then
         log_error "This script requires sudo to install Git. Please run with a user that has sudo privileges."
     fi
-    sudo apt update -qq && sudo apt install -y git -qq
+    sudo apt update -qq &>/dev/null && sudo apt install -y git -qq &>/dev/null
 fi
 
 # 3. Detect environment
-if grep -qi microsoft /proc/version 2>/dev/null; then
+IS_WSL=$(grep -qi microsoft /proc/version 2>/dev/null && echo "yes" || echo "no")
+
+# Check /proc/sys/kernel/osrelease for newer WSL versions
+if [ "$IS_WSL" = "no" ] && [ -f /proc/sys/kernel/osrelease ]; then
+    IS_WSL=$(grep -qi microsoft /proc/sys/kernel/osrelease && echo "yes" || echo "no")
+fi
+
+if [ "$IS_WSL" = "yes" ]; then
     SETUP_TYPE="OJ-Setup"
     log_info "Detected environment: 🖥️ WSL (Windows Subsystem for Linux)"
 else
@@ -72,7 +79,7 @@ mkdir -p "$TARGET_DIR"
 # 7. Copy files
 log_info "Moving $SETUP_TYPE files to $TARGET_DIR..."
 if [ -d "$TEMP_DIR/$SETUP_TYPE" ]; then
-    cp -r "$TEMP_DIR/$SETUP_TYPE/"* "$TARGET_DIR/"
+    cp -r "$TEMP_DIR/$SETUP_TYPE/." "$TARGET_DIR/"
 else
     log_error "Setup directory $SETUP_TYPE not found in repository."
 fi
@@ -80,15 +87,14 @@ fi
 # 8. Set permissions
 log_info "Setting executable permissions on scripts..."
 if [ -d "$TARGET_DIR/script" ]; then
-    chmod +x "$TARGET_DIR/script/"*.sh
+    find "$TARGET_DIR/script" -maxdepth 1 -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 fi
 
 echo -e "${BLUE}===========================================${NC}"
 log_success "Bootstrap complete!"
 echo -e "${BLUE}===========================================${NC}"
 log_info "All files are ready at: ${YELLOW}$TARGET_DIR${NC}"
-log_info ""
 log_info "Next Steps:"
 echo -e "  1. ${CYAN}cd $TARGET_DIR/script${NC}"
-echo -e "  2. ${CYAN}./01-install-tools-k3s.sh${NC}"
+echo -e "  2. ${CYAN}./00-install-all.sh${NC} (แนะนำให้รันตัวนี้เพื่อติดตั้งทั้งหมด)"
 echo -e "${BLUE}===========================================${NC}"

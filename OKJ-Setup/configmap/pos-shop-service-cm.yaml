@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: pos-shop-service
+  name: pos-shop-service-config
+  namespace: apps
+data:
+  CONFIG_DATABASE_DATABASE: shop
+  CONFIG_DATABASE_DEBUG: "false"
+  CONFIG_DATABASE_HOST: okj-pgsql-rw.pgsql.svc.cluster.local
+  CONFIG_DATABASE_KEY: vYJ8qdAubvGINrJnHWOCJoEXXFTmj
+  CONFIG_DATABASE_PASSWORD: S3cuReP455w0Rd2
+  CONFIG_DATABASE_PORT: "5432"
+  CONFIG_DATABASE_USERNAME: shop
+  CONFIG_DEBUG_KITCHEN_PRINTER: "false"
+  CONFIG_IMAGE_BASE_URL: https://shop.ohkajhu.com/storage/assets
+  CONFIG_JWT_ACCESS_EXPIRE_TIME: 1h
+  CONFIG_JWT_AUDIENCE: okj
+  CONFIG_JWT_ISSUER: to-the-mars
+  CONFIG_JWT_PRIVATE_KEY_PATH: ./config/jwt/private-key.pem
+  CONFIG_JWT_PUBLIC_KEY_PATH: ./config/jwt/public-key.pem
+  CONFIG_JWT_REFRESH_EXPIRE_TIME: 168h
+  CONFIG_ONLINE_WEB_URL: https://selforder-pos.ohkajhu.com
+  CONFIG_REDIS_HOST: redis:6379
+  CONFIG_SERVER_PORT: "8081"
+  CONFIG_SOCKET_IO_HOST: http://pos-socket-io-service-svc:3000
+  CONFIG_SUBSCRIBER_HOST: 125.254.54.196
+  CONFIG_SUBSCRIBER_PASSWORD: Adm1NraBb1tMqpAss
+  CONFIG_SUBSCRIBER_PORT: "5672"
+  CONFIG_SUBSCRIBER_USERNAME: admin
+  CONFIG_UPLOADER_ENABLED: "true"
+  CONFIG_SHOP_CODE: JW000 # Change this value for each shop
+  CONFIG_SHOP_GATEWAY_BASE_URL: https://shop-gateway.ohkajhu.com
+  CONFIG_SHOP_GATEWAY_TOKEN: xxxxxxxxxxxxxxxxxxxxxxxxxx
+  CONFIG_RMS_BASE_URL: https://rms-pos.ohkajhu.com
+  CONFIG_RMS_TOKEN: xxxxxxxxxxxxxxxxxxxxxxxxxx

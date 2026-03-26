@@ -1,0 +1,3 @@
+@echo off
+echo Starting K8S Monitor...
+start wsl -d Ubuntu -u okjadmin bash -c "watch -n 1 'sudo kubectl get po -A'; exec bash"

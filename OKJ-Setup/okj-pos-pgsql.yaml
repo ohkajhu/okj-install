@@ -1,0 +1,80 @@
+---
+apiVersion: v1
+data:
+  password: UzNjdVJlUDQ1NXcwUmQy
+  username: c2hvcA==
+# shop /S3cuReP455w0Rd2
+kind: Secret
+metadata:
+  name: cnpg-app-user
+type: kubernetes.io/basic-auth
+---
+apiVersion: v1
+data:
+  password: U3RyMG5nUDRzc1cwcmQz
+  username: cG9zdGdyZXM=
+# postgres /Str0ngP4ssW0rd3
+kind: Secret
+metadata:
+  name: cnpg-superuser
+type: kubernetes.io/basic-auth
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: okj-pgsql
+spec:
+  imagePullPolicy: IfNotPresent
+  imageName: ghcr.io/cloudnative-pg/postgresql:14
+  logLevel: info
+  instances: 1
+  storage:
+    size: 50Gi
+    storageClass: local-path
+  walStorage:
+    size: 2Gi
+    storageClass: local-path
+  bootstrap:
+    initdb:
+      database: shop
+      owner: shop
+      secret:
+        name: cnpg-app-user
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "0.5"
+    limits:
+      memory: "4Gi"
+      cpu: "1"
+
+  postgresql:
+    parameters:
+      timezone: "Asia/Bangkok"
+      shared_buffers: 256MB
+      pg_stat_statements.max: '10000'
+      pg_stat_statements.track: all
+      auto_explain.log_min_duration: '10s'
+    pg_hba:
+      - "host all all 0.0.0.0/0 md5"
+
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: cnpg-superuser
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: okj-pgsql-nodeport
+spec:
+  type: NodePort
+  selector:
+    cnpg.io/cluster: okj-pgsql
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    nodePort: 30432
+
+
+#okj-pgsql-rw.pgsql.svc.cluster.local:5432

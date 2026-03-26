@@ -32,45 +32,45 @@ section() {
 
 section "🌍 Environment & Hosts Setup"
 
-# ฟังก์ชันแสดงไฟล์เดิม
+# Function to show current environment file
 show_current_environment() {
-    log "INFO" "📄 ตรวจสอบไฟล์ /etc/environment ปัจจุบัน:"
+    log "INFO" "📄 Checking current /etc/environment file:"
     echo "------------------------------------------"
     if [ -f /etc/environment ] && [ -s /etc/environment ]; then
         cat /etc/environment
     else
-        log "INFO" "(ไฟล์ว่างหรือไม่มีไฟล์)"
+        log "INFO" "(File is empty or not found)"
     fi
     echo "------------------------------------------"
     echo ""
 }
 
-# ฟังก์ชันแสดง hosts file ปัจจุบัน
+# Function to show current hosts file
 show_current_hosts() {
-    log "INFO" "📄 ตรวจสอบไฟล์ /etc/hosts ปัจจุบัน:"
+    log "INFO" "📄 Checking current /etc/hosts file:"
     echo "------------------------------------------"
     if [ -f /etc/hosts ] && [ -s /etc/hosts ]; then
         cat /etc/hosts
     else
-        log "INFO" "(ไฟล์ว่างหรือไม่มีไฟล์)"
+        log "INFO" "(File is empty or not found)"
     fi
     echo "------------------------------------------"
     echo ""
 }
 
-# ฟังก์ชันสำหรับถาม TENANT name
+# Function to prompt for TENANT name
 get_tenant_name() {
     while true; do
-        echo -n -e "${CYAN}กรุณาใส่ชื่อ TENANT: ${NC}"
+        echo -n -e "${CYAN}Please enter TENANT name: ${NC}"
         read TENANT_NAME
         
         if [ -z "$TENANT_NAME" ]; then
-            log "WARN" "⚠️  กรุณาใส่ชื่อ TENANT"
+            log "WARN" "⚠️  Please enter TENANT name"
             continue
         fi
         
         if [[ ! $TENANT_NAME =~ ^[a-zA-Z0-9_-]+$ ]]; then
-            log "WARN" "⚠️  ชื่อ TENANT ควรมีเฉพาะตัวอักษร, ตัวเลข, -, _ เท่านั้น"
+            log "WARN" "⚠️  TENANT name should only contain letters, numbers, -, _"
             continue
         fi
         
@@ -78,37 +78,37 @@ get_tenant_name() {
     done
 }
 
-# ฟังก์ชันยืนยันการตั้งค่า
+# Function to confirm settings
 confirm_settings() {
     echo ""
-    log "INFO" "📋 ตรวจสอบการตั้งค่า:"
+    log "INFO" "📋 Review settings:"
     echo "------------------------------------------"
-    echo "ไฟล์ /etc/environment"
+    echo "File: /etc/environment"
     echo "TENANT: $TENANT_NAME"
     echo "REGISTRY_HOST: registry.ohkajhu.com"
     echo "REGISTRY_USERNAME: robot\$cache-server"
     echo "REGISTRY_PASSWORD: KcHN7gPepBR2AGkKC2NQQiNAmDUheTAm"
     echo ""
-    echo "ไฟล์ /etc/hosts"
+    echo "File: /etc/hosts"
     echo "125.254.54.194 registry.ohkajhu.com"
     echo "125.254.54.194 shop-gateway.ohkajhu.com"
     echo "------------------------------------------"
     echo ""
     
     while true; do
-        echo -n -e "${YELLOW}ยืนยันการตั้งค่า? (y/n): ${NC}"
+        echo -n -e "${YELLOW}Confirm settings? (y/n): ${NC}"
         read CONFIRM
         case $CONFIRM in
-            [Yy]|[Yy]es|ใช่) return 0 ;;
-            [Nn]|[Nn]o|ไม่) return 1 ;;
-            *) log "WARN" "กรุณาตอบ y หรือ n" ;;
+            [Yy]|[Yy]es) return 0 ;;
+            [Nn]|[Nn]o) return 1 ;;
+            *) log "WARN" "Please answer y or n" ;;
         esac
     done
 }
 
-# ฟังก์ชันสร้าง/อัปเดตไฟล์ environment
+# Function to create/update environment file
 create_environment_file() {
-    log "INFO" "🔧 กำลังอัปเดตไฟล์ /etc/environment..."
+    log "INFO" "🔧 Updating /etc/environment file..."
     
     TEMP_FILE=$(mktemp)
     if [ -f /etc/environment ] && [ -s /etc/environment ]; then
@@ -128,12 +128,12 @@ EOF
     sudo cp "$TEMP_FILE" /etc/environment
     rm "$TEMP_FILE"
     
-    log "SUCCESS" "✅ อัปเดตไฟล์ /etc/environment สำเร็จ"
+    log "SUCCESS" "✅ Correctly updated /etc/environment"
 }
 
-# ฟังก์ชันอัปเดต hosts file
+# Function to update hosts file
 update_hosts_file() {
-    log "INFO" "🔧 กำลังอัปเดตไฟล์ /etc/hosts..."
+    log "INFO" "🔧 Updating /etc/hosts file..."
     
     sudo cp /etc/hosts /etc/hosts.backup
     sudo sed -i '/ohkajhu\.com/d' /etc/hosts
@@ -143,28 +143,28 @@ update_hosts_file() {
 125.254.54.194 shop-gateway.ohkajhu.com
 EOF
     
-    log "SUCCESS" "✅ อัปเดตไฟล์ /etc/hosts สำเร็จ"
+    log "SUCCESS" "✅ Correctly updated /etc/hosts"
 }
 
-# ฟังก์ชันโหลดตัวแปรสิ่งแวดล้อม
+# Function to load environment variables
 load_environment() {
-    log "INFO" "🔄 กำลังโหลดตัวแปรสิ่งแวดล้อม..."
-    # Note: ในสคริปต์นี้ source จะมีผลแค่ในกระบวนการลูก
-    log "SUCCESS" "✅ ตัวแปรพร้อมใช้งานแล้ว (กรุณาเปิด Terminal ใหม่เพื่อให้ค่ามีผลสมบูรณ์)"
+    log "INFO" "🔄 Loading environment variables..."
+    # Note: In this script, source only affects the child process
+    log "SUCCESS" "✅ Variables are ready (please restart terminal for changes to take full effect)"
 }
 
-# ฟังก์ชันตรวจสอบสิทธิ์
+# Function to check permissions
 check_permissions() {
     if [ "$EUID" -eq 0 ]; then
-        log "WARN" "⚠️  กำลังรันด้วยสิทธิ์ root"
-        log "INFO" "กรุณารันสคริปต์นี้ด้วยผู้ใช้ทั่วไป (สคริปต์จะขอ sudo เมื่อจำเป็น)"
+        log "WARN" "⚠️  Running as root"
+        log "INFO" "Please run this script as a regular user (it will ask for sudo when needed)"
         exit 1
     fi
     
-    sudo -v > /dev/null 2>&1 || log "ERROR" "❌ ไม่สามารถใช้ sudo ได้ กรุณาตั้งค่าสิทธิ์ sudo"
+    sudo -v > /dev/null 2>&1 || log "ERROR" "❌ sudo access denied. Please configure sudo permissions."
 }
 
-# ฟังก์ชันหลัก
+# Main function
 main() {
     check_permissions
     show_current_environment
@@ -172,7 +172,7 @@ main() {
     get_tenant_name
     
     if ! confirm_settings; then
-        log "WARN" "❌ ยกเลิกการตั้งค่า"
+        log "WARN" "❌ Canceled settings update"
         exit 0
     fi
     

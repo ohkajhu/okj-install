@@ -32,23 +32,23 @@ section() {
 
 section "🔧 K3s IP Change & Certificate Recovery"
 
-# ตรวจสอบว่าคำสั่ง k3s และ kubectl ใช้งานได้หรือไม่
+# Check if k3s and kubectl commands are available
 if ! command -v k3s >/dev/null 2>&1; then
     log "ERROR" "🚨 k3s command not found. Please ensure k3s is installed correctly."
 fi
 
-# --- 1. Fix: แก้ไข IP ใน Kubeconfig ---
+# --- 1. Fix: Update IP in Kubeconfig ---
 log "INFO" "⚙️  1. Updating Kubeconfig (Fixing IP change)..."
 NEW_IP=$(hostname -I | awk '{print $1}')
 log "INFO" "   - Current Node IP detected: $NEW_IP"
 
-# ดึง config ล่าสุด และแทนที่ 127.0.0.1 ด้วย IP ใหม่
+# Retrieve latest config and replace 127.0.0.1 with $NEW_IP
 k3s kubectl config view --raw | sed "s/127\.0\.0\.1/$NEW_IP/g" > "$HOME/.kube/config"
 
 chmod 600 "$HOME/.kube/config"
 log "SUCCESS" "✅ Kubeconfig updated successfully."
 
-# --- 2. Fix: หมุนเวียน Certificate ---
+# --- 2. Fix: Rotate Certificates ---
 log "INFO" "📜  2. Attempting Certificate Rotation..."
 log "INFO" "   - Stopping k3s service..."
 sudo systemctl stop k3s

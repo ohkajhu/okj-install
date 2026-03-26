@@ -67,15 +67,15 @@ fi
 section "🚀 OKJ POS SYSTEM - MASTER INSTALLER (Ubuntu Server)"
 
 # --- 0. Get Environment Choice ---
-echo -e "${CYAN}เลือกสภาพแวดล้อมที่ต้องการติดตั้ง Flux:${NC}"
+echo -e "${CYAN}Please select the Flux environment to install:${NC}"
 echo "  1) staging (stg)"
 echo "  2) production (prd)"
-read -p "กรุณาเลือก (1 หรือ 2): " ENV_CHOICE
+read -p "Please select (1 or 2): " ENV_CHOICE
 
 case $ENV_CHOICE in
     1) FLUX_SCRIPT="install-stg.sh"; FLUX_ENV="staging" ;;
     2) FLUX_SCRIPT="install-prd.sh"; FLUX_ENV="production" ;;
-    *) echo -e "${RED}❌ ตัวเลือกไม่ถูกต้อง ยกเลิกการติดตั้ง${NC}"; exit 1 ;;
+    *) echo -e "${RED}❌ Invalid choice. Installation cancelled.${NC}"; exit 1 ;;
 esac
 
 # Get script directory
@@ -127,8 +127,8 @@ create_summary_file "Ubuntu Server (Native)" "$FLUX_ENV"
 
 # --- Final Summary ---
 section "🎉 MASTER INSTALLATION COMPLETE"
-echo -e "${GREEN}ระบบได้ทำการติดตั้งเสร็จสมบูรณ์ทุกขั้นตอนแล้วครับ!${NC}"
-echo -e "คุณสามารถดูรายละเอียดข้อมูลการเข้าใช้งานได้ที่:"
+echo -e "${GREEN}System installation completed successfully!${NC}"
+echo -e "You can find the access details at:"
 echo -e "${YELLOW}cat ~/okj-install/install-summary.txt${NC}"
 echo -e "-------------------------------------------"
 echo -e "${CYAN}Node Status:${NC}"

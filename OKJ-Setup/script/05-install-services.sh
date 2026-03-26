@@ -135,12 +135,10 @@ log "INFO" "Applying pos-shop-terminal-cm manifests..."
 sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/configmap/pos-shop-terminal-cm.yaml" -n apps
 log "SUCCESS" "Terminal ConfigMap applied."
 
-# --- Warning Message ---
+# --- Notice ---
 echo ""
-log "WARN" "⚠️  Note: pos-shop-service-cm.yaml was skipped."
-log "INFO" "💡 You must manually configure its token for this branch before applying:"
-log "INFO" "   Location: $BASE_DIR/configmap/pos-shop-service-cm.yaml"
-log "INFO" "   Command: sudo kubectl apply -f $BASE_DIR/configmap/pos-shop-service-cm.yaml -n apps"
+log "WARN" "⚠️  Note: pos-shop-service-cm.yaml configuration is handled in the next step."
+log "INFO" "💡 You can run Step 6 (06-config-shop.sh) to configure it interactively."
 
 section "✅ ALL SERVICES APPLIED"
 sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get pod -n pgsql

@@ -6,8 +6,7 @@
 | โฟลเดอร์/ไฟล์ | ใช้ทำอะไร |
 | :--- | :--- |
 | **`install-all.sh`** | **สคริปต์หลัก (Master Installer)** รันตัวเดียวติดตั้งครบทุกขั้นตอน |
-| **`install-services.sh`** | ติดตั้งบริการ Postgres, Redis และ ConfigMap เข้าสู่ระบบ |
-| `script/` | รวมสคริปต์ย่อย (Tools, K3s, Env, Startup) |
+| `script/` | รวมสคริปต์ย่อย (Tools, K3s, Env, Startup, Config) |
 | `configmap/` | ไฟล์ ConfigMap ประจำระบบ POS |
 | `Start WSL.bat` | ไฟล์ Batch สำหรับเปิด Kubernetes Monitor ฝั่ง Windows |
 
@@ -23,30 +22,32 @@ OJ-Setup/
 │   ├── 03-set-env.sh
 │   ├── 04-update-ip-k3s.sh
 │   ├── 05-install-services.sh
-│   └── 06-startup.sh           # <--- สคริปต์ตั้งค่า Auto Startup ฝั่ง Windows
+│   ├── 06-startup.sh           # ตั้งค่า Auto Startup
+│   └── 07-config-shop.sh       # ตั้งค่า Shop Code/Token อัตโนมัติ (ตอบโต้)
 └── ... (ไฟล์ Manifest อื่นๆ)
 ```
 
-## ลำดับการติดตั้ง (แนะนำ - วิธีที่ง่ายที่สุด) 🚀
+## ลำดับการติดตั้ง (Master Installer) 🚀
 
 เราได้ทำสคริปต์รวมเพื่อให้ติดตั้งได้หมดในชุดเดียว:
 
 ```bash
 # พิมพ์คำสั่งใน Ubuntu (WSL)
-cd ~/okj-install/OJ-Setup
+cd ~/okj-install
 chmod +x *.sh script/*.sh
 ./install-all.sh
 ```
 
-> **สิ่งที่ทำโดยอัตโนมัติ:**
+> **สิ่งที่สคริปต์ทำโดยอัตโนมัติ:**
 > 1.  **Step 1:** ติดตั้งเครื่องมือพื้นฐาน (Git, FluxCD, etc.)
 > 2.  **Step 2:** ติดตั้ง pgAdmin4 (Web Interface)
-> 3.  **Step 3:** ติดตั้ง K3s Cluster และตั้งค่าสิทธิ์ให้เข้าถึงได้จาก Windows
+> 3.  **Step 3:** ติดตั้ง K3s Cluster และสิทธิ์ต่างๆ
 > 4.  **Step 4:** ตั้งชื่อ Tenant (สาขา) และตั้งค่า Hosts
 > 5.  **Step 5:** Bootstrap FluxCD ตามสภาพแวดล้อม
-> 6.  **Step 6:** ติดตั้ง Cluster Services (Database และ ConfigMaps)
-> 7.  **Step 7:** **Auto Startup:** ตรวจหาชื่อ WSL Distro และนำไฟล์ `Start WSL.bat` ไปไว้ใน Startup folder ของ Windows ให้อัตโนมัติ!
-> 8.  **Step 8:** สรุปข้อมูลการเข้าใช้งานไว้ใน `~/okj-install/install-summary.txt`
+> 6.  **Step 6:** ติดตั้ง Cluster Services (Postgres, Redis, CM)
+> 7.  **Step 7:** **Auto Startup:** ตั้งค่าให้ระบบ Monitor เปิดอัตโนมัติเมื่อเปิดคอมพิวเตอร์ Windows
+> 8.  **Step 8:** **Shop Configuration:** ตั้งค่า Shop Code และ Token ของสาขา (ตอบโต้ผ่าน Terminal)
+> 9.  **Step 9:** สรุปข้อมูลการเข้าใช้งานไว้ใน `~/okj-install/install-summary.txt`
 
 ---
 
@@ -67,22 +68,18 @@ chmod +x *.sh script/*.sh
     ```
 3.  **ติดตั้งบริการในคลัสเตอร์ (Postgres, Redis, CM)**
     ```bash
-    cd ~/okj-install/OJ-Setup
-    ./install-services.sh
+    ./script/05-install-services.sh
     ```
-4.  **ตั้งค่าเปิดโปรแกรมอัตโนมัติ (Startup)**
+4.  **ตั้งค่า Auto Startup (ฝั่ง Windows)**
     ```bash
-    cd ~/okj-install/script
-    ./05-startup.sh
+    ./script/06-startup.sh
+    ```
+5.  **ตั้งค่า Shop Code/Token**
+    ```bash
+    ./script/07-config-shop.sh
     ```
 
 ## การแก้ปัญหาเบื้องต้น
 *   **เช็คสถานะระบบ**: `sudo kubectl get pods -A`
-*   **IP เครื่องเปลี่ยน**: หากย้ายที่ตั้งใช้บริการไม่ได้ ให้รัน:
-    ```bash
-    cd ~/okj-install/script
-    ./04-update-ip-k3s.sh
-    ```
+*   **IP เครื่องเปลี่ยน**: รัน: `./script/04-update-ip-k3s.sh`
 *   **ดูสรุปข้อมูล**: `cat ~/okj-install/install-summary.txt`
-
-**สำคัญ:** อย่าลืมปรับค่า Token ใน `configmap/pos-shop-service-cm.yaml` ให้ตรงตามสาขาก่อนนำไปใช้งานจริงทุกครั้ง

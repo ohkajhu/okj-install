@@ -17,7 +17,7 @@ ANYDESK_PASSWORD="${ANYDESK_PASSWORD:-mu,wvmu2023}"
 
 TEMP_DIR=""
 LOGFILE="/tmp/k8s_setup_$(TZ='Asia/Bangkok' date +%Y%m%d_%H%M%S).log"
-TOTAL_STEPS=14
+TOTAL_STEPS=15
 CURRENT_STEP=0
 ARCH=""
 CLEANUP_CALLED=false
@@ -243,6 +243,24 @@ install_desktop() {
     sudo systemctl restart xrdp
     
     log "SUCCESS" "✅ XFCE4 and XRDP installation complete."
+}
+
+install_firefox() {
+    show_progress "🌐 Installing Firefox Browser..."
+    
+    if is_installed firefox; then
+        log "INFO" "✅ Firefox is already installed."
+    else
+        log "INFO" "📦 Installing Firefox..."
+        # On Ubuntu 22.04+, apt install firefox is a transition to snap
+        sudo apt install -y firefox -qq
+        
+        if is_installed firefox; then
+            log "SUCCESS" "✅ Firefox installation successful."
+        else
+            log "ERROR" "❌ Firefox installation failed."
+        fi
+    fi
 }
 
 install_git() {
@@ -918,6 +936,7 @@ main() {
     
     update_system || { log "ERROR" "❌ System update failed"; exit 1; }
     install_desktop || { log "ERROR" "❌ Desktop installation failed"; exit 1; }
+    install_firefox || { log "ERROR" "❌ Firefox installation failed"; exit 1; }
     install_git || { log "ERROR" "❌ Git installation failed"; exit 1; }
     install_ssh || { log "ERROR" "❌ SSH installation failed"; exit 1; }
     install_fluxcd || { log "ERROR" "❌ FluxCD installation failed"; exit 1; }

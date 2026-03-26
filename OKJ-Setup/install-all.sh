@@ -117,6 +117,7 @@ if [ -d ".bootstrap" ]; then
     log_step "Installing Flux ($FLUX_SCRIPT)..."
     sudo "./$FLUX_SCRIPT"
     log_success "Flux installation complete."
+    cd "$SCRIPT_DIR"
 else
     echo -e "${RED}❌ .bootstrap directory not found after extraction!${NC}"
     exit 1

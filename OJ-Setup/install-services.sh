@@ -68,6 +68,19 @@ check_cluster_readiness() {
     log "WARN" "⚠️  Timeout waiting for system pods. Proceeding anyway..."
 }
 
+wait_for_crd() {
+    local crd=$1
+    log "INFO" "⏳ Waiting for CRD: $crd..."
+    for i in {1..30}; do
+        if sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get crd "$crd" &>/dev/null; then
+            log "SUCCESS" "✅ CRD $crd is ready."
+            return 0
+        fi
+        sleep 10
+    done
+    log "ERROR" "❌ Timeout waiting for CRD: $crd. CloudNativePG might still be installing."
+}
+
 section "🚀 Installing Cluster Services"
 check_cluster_readiness
 
@@ -81,6 +94,7 @@ else
 fi
 
 log "INFO" "Applying PostgreSQL manifests..."
+wait_for_crd "clusters.postgresql.cnpg.io"
 sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/okj-pos-pgsql.yaml" -n pgsql
 log "SUCCESS" "PostgreSQL resources applied."
 

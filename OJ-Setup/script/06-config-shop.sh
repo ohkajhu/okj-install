@@ -46,12 +46,28 @@ log "INFO" "This script will help you configure the Shop Code and Gateway/RMS To
 log "INFO" "Configuration File: $BASE_DIR/configmap/pos-shop-service-cm.yaml"
 echo ""
 
-read -p "  Enter SHOP_CODE (e.g., JW000): " SHOP_CODE
-read -p "  Enter SHOP_TOKEN (Gateway/RMS): " SHOP_TOKEN
-
-if [ -z "$SHOP_CODE" ] || [ -z "$SHOP_TOKEN" ]; then
-    log "ERROR" "SHOP_CODE and SHOP_TOKEN cannot be empty."
-fi
+while true; do
+    echo -e "\n${CYAN}--- Please enter the following information ---${NC}"
+    read -p "  1. Enter SHOP_CODE (e.g., JW000): " SHOP_CODE
+    read -p "  2. Enter SHOP_TOKEN (Gateway/RMS): " SHOP_TOKEN
+    
+    if [ -z "$SHOP_CODE" ] || [ -z "$SHOP_TOKEN" ]; then
+        log "WARN" "⚠️  SHOP_CODE and SHOP_TOKEN cannot be empty. Please try again."
+        continue
+    fi
+    
+    echo -e "\n${YELLOW}--- Review your information ---${NC}"
+    echo -e "  SHOP_CODE  : ${GREEN}$SHOP_CODE${NC}"
+    echo -e "  SHOP_TOKEN : ${GREEN}$SHOP_TOKEN${NC}"
+    echo -e "${YELLOW}-------------------------------${NC}"
+    
+    read -p "Is this correct? (y/n): " CONFIRM
+    if [[ $CONFIRM =~ ^[Yy]$ ]]; then
+        break
+    else
+        log "INFO" "Resetting... please re-enter the information."
+    fi
+done
 
 log "INFO" "Updating configuration file using yq..."
 

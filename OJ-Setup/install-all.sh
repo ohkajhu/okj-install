@@ -131,8 +131,8 @@ log_success "Cluster services installed."
 
 # --- 7. Step 7: Add WSL to Startup ---
 section "Step 7: Adding WSL to Startup"
-log_step "Running ./script/06-startup.sh..."
-./script/06-startup.sh
+log_step "Running ./script/07-startup.sh..."
+./script/07-startup.sh
 log_success "Startup setup complete."
 
 # --- 8. Final Steps: Summary ---

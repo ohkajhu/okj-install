@@ -1,6 +1,12 @@
-# OKJ POS Installation Resource (okj-install)
+## 🚀 เริ่มต้นติดตั้งด้วย Bootstrap (แนะนำ)
 
-ชุดเครื่องมือและสคริปต์สำหรับการติดตั้งระบบ **OKJ POS** โดยใช้ **Kubernetes (K3s)** และ **GitOps (FluxCD)** เพื่อความเป็นมาตรฐานและง่ายต่อการดูแลรักษาในระยะยาว
+คุณสามารถเริ่มการติดตั้งใน Linux (WSL หรือ Server) ได้ทันทีโดยใช้คำสั่งเดียวเพื่อดึงไฟล์ทั้งหมดมาไว้ที่ `~/usb`:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/ohkajhu/okj-install/main/bootstrap.sh | bash
+```
+
+*หมายเหตุ: สคริปต์จะตรวจสอบสภาพแวดล้อมว่าเป็น WSL หรือ Server โดยอัตโนมัติ และจะดึงไฟล์จาก Git มาวางไว้ที่ `~/usb` เพื่อให้สอดคล้องกับคู่มือเดิม*
 
 ---
 

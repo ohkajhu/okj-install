@@ -37,12 +37,20 @@ OKJ-Setup/
 - เครื่อง Ubuntu 20.04 ขึ้นไป และสามารถใช้ `sudo` ได้
 - อินเทอร์เน็ตสำหรับดาวน์โหลดแพ็กเกจ
 
-## เริ่มต้นใช้งาน (ใช้ USB)
+## เริ่มต้นใช้งาน (วิธีที่แนะนำ)
+หากเครื่อง Server ต่ออินเทอร์เน็ตได้ แนะนำให้ใช้ Bootstrap script เพื่อดึงไฟล์จาก Git มาไว้ที่ `~/usb`:
 ```bash
+curl -sSL https://raw.githubusercontent.com/ohkajhu/okj-install/main/bootstrap.sh | bash
+```
+
+## เริ่มต้นใช้งาน (กรณีใช้ USB)
+```bash
+# ตรวจสอบว่า USB อยู่ที่ dev ไหน (เช่น /dev/sdb1)
 sudo fdisk -l
-mkdir ~/usb
+mkdir -p ~/usb
 sudo mount /dev/sdb1 ~/usb
 cd ~/usb/script
+chmod +x *.sh
 ```
 
 ## ลำดับการติดตั้งที่แนะนำ

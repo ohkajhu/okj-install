@@ -20,12 +20,10 @@ curl -sSL https://raw.githubusercontent.com/ohkajhu/okj-install/main/bootstrap.s
 
 ### 1. [OJ-Setup](./OJ-Setup/) (Windows + WSL2)
 เหมาะสำหรับเครื่อง POS หน้าร้านที่ใช้ **Windows** โดยรันระบบผ่าน WSL2 (Ubuntu 22.04)
-- **จุดเด่น**: มีระบบ **Auto Startup** ฝั่ง Windows, Sync เวลาจากโฮสต์อัตโนมัติ
 - **คู่มือติดตั้ง**: [Full Installation Guide (WSL)](./OJ-Setup/OJ-Setup-Guide.md)
 
 ### 2. [OKJ-Setup](./OKJ-Setup/) (Ubuntu Server)
 เหมาะสำหรับเครื่อง **Server** กลางของสาขาที่ใช้ Ubuntu เป็น OS หลัก
-- **จุดเด่น**: มีความเสถียรสูงสำหรับงาน Server, ติดตั้ง pgAdmin แบบ Web Access
 - **คู่มือติดตั้ง**: [Setup Guide (Server)](./OKJ-Setup/OKJ-Setup-Guide.md)
 
 ---
@@ -63,7 +61,7 @@ curl -sSL https://raw.githubusercontent.com/ohkajhu/okj-install/main/bootstrap.s
 ---
 
 ## ⚠️ ข้อควรระวัง
-**การตั้งค่า Token**: ก่อนใช้งานจริง ควรตรวจสอบและแก้ไขไฟล์ในโฟลเดอร์ `configmap/` เพื่อระบุ Token ของแต่ละสาขาให้ถูกต้อง (โดยเฉพาะ `pos-shop-service-cm.yaml`)
+**การตั้งค่า Token**: ก่อนใช้งานจริง ควรตรวจสอบและแก้ไขไฟล์ในโฟลเดอร์ `configmap/` เพื่อระบุ Token ของแต่ละสาขาให้ถูกต้อง (`pos-shop-service-cm.yaml`)
 
 ---
 © 2026 TOTHEMARS - OKJ POS Deployment System

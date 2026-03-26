@@ -37,7 +37,7 @@ fi
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE_DIR="$SCRIPT_DIR"
+BASE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 KUBECONFIG_PATH="/etc/rancher/k3s/k3s.yaml"
 
 # --- Check Cluster Readiness ---
@@ -49,18 +49,32 @@ check_cluster_readiness() {
     local attempt=1
     
     while [ $attempt -le $max_attempts ]; do
-        # We check pods in kube-system, flux-system, and tools.
-        # We wait until they are either 'Running' or 'Completed'.
-        local non_ready_pods=$(sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get pods -A --no-headers | grep -E "kube-system|flux-system|tools" | grep -vE "Running|Completed" || true)
+        # 1. Get all pods
+        local all_pods=$(sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get pods -A --no-headers 2>/dev/null || true)
         
-        if [ -z "$non_ready_pods" ]; then
-            log "SUCCESS" "✅ System namespaces are ready."
+        # 2. Check if tools namespace has pods (it might take a while for Flux to create it)
+        local tools_pods=$(echo "$all_pods" | grep "tools" || true)
+        
+        # 3. Check for non-ready pods in system namespaces
+        local non_ready_system=$(echo "$all_pods" | grep -E "kube-system|flux-system" | grep -vE "Running|Completed" || true)
+        
+        # 4. Check for non-ready pods in tools
+        local non_ready_tools=$(echo "$tools_pods" | grep -vE "Running|Completed" || true)
+
+        # Logic: We must have at least SOME pods in tools, AND no system/tools pods are non-ready
+        if [ -n "$tools_pods" ] && [ -z "$non_ready_system" ] && [ -z "$non_ready_tools" ]; then
+            log "SUCCESS" "✅ System and Tools namespaces are ready."
             sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get pods -A
             return 0
         fi
         
-        local count=$(echo "$non_ready_pods" | wc -l)
-        log "INFO" "   Attempt $attempt/$max_attempts: $count pods in system namespaces are not ready yet. Waiting 10s..."
+        if [ -z "$tools_pods" ]; then
+            log "INFO" "   Attempt $attempt/$max_attempts: Waiting for 'tools' namespace pods (CloudNativePG, Ingress, etc.) to start..."
+        else
+            local count=$(echo -e "${non_ready_system}\n${non_ready_tools}" | grep -v "^$" | wc -l || echo 0)
+            log "INFO" "   Attempt $attempt/$max_attempts: $count core pods are not ready yet. Waiting 10s..."
+        fi
+        
         sleep 10
         ((attempt++))
     done
@@ -124,7 +138,7 @@ log "SUCCESS" "Terminal ConfigMap applied."
 # --- Warning Message ---
 echo ""
 log "WARN" "⚠️  Note: pos-shop-service-cm.yaml was skipped."
-log "INFO" "💡 You must manually configure its token for this branch before applying."
+log "INFO" "💡 You must manually configure its token for this branch before applying:"
 log "INFO" "   Location: $BASE_DIR/configmap/pos-shop-service-cm.yaml"
 log "INFO" "   Command: sudo kubectl apply -f $BASE_DIR/configmap/pos-shop-service-cm.yaml -n apps"
 

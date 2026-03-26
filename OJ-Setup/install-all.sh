@@ -125,14 +125,14 @@ fi
 
 # --- 6. Step 6: Cluster Services ---
 section "Step 6: Installing Cluster Services"
-log_step "Running ./install-services.sh..."
-./install-services.sh
+log_step "Running ./script/05-install-services.sh..."
+./script/05-install-services.sh
 log_success "Cluster services installed."
 
 # --- 7. Step 7: Add WSL to Startup ---
 section "Step 7: Adding WSL to Startup"
-log_step "Running ./script/05-startup.sh..."
-./script/05-startup.sh
+log_step "Running ./script/06-startup.sh..."
+./script/06-startup.sh
 log_success "Startup setup complete."
 
 # --- 8. Final Steps: Summary ---

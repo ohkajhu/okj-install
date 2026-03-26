@@ -17,7 +17,6 @@
 ```
 OKJ-Setup/
 ├── install-all.sh              # <--- รันตัวนี้เพื่อติดตั้งทั้งหมด
-├── install-services.sh         # <--- ติดตั้ง PG, Redis, CM เข้า Cluster
 ├── configmap/
 │   ├── pos-shop-service-cm.yaml        # ไฟล์ configmap ของ pos-shop-service (ต้องแก้ Token แต่ละสาขา)
 │   └── pos-shop-terminal-cm.yaml       # ไฟล์ configmap ของ pos-shop-terminal
@@ -25,7 +24,8 @@ OKJ-Setup/
 │   ├── 01-install-tools-k3s.sh
 │   ├── 02-install-k3s.sh
 │   ├── 03-set-env.sh
-│   └── 04-update-ip-k3s.sh
+│   ├── 04-update-ip-k3s.sh
+│   └── 05-install-services.sh
 └── ... (ไฟล์ Manifest อื่นๆ)
 ```
 

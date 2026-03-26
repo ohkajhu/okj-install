@@ -14,7 +14,6 @@
 ```
 OJ-Setup/
 ├── install-all.sh              # <--- สคริปต์รวม (Master Installer)
-├── install-services.sh         # <--- ติดตั้ง PG, Redis, CM เข้า Cluster
 ├── configmap/
 │   ├── pos-shop-service-cm.yaml
 │   └── pos-shop-terminal-cm.yaml
@@ -23,7 +22,8 @@ OJ-Setup/
 │   ├── 02-install-k3s.sh
 │   ├── 03-set-env.sh
 │   ├── 04-update-ip-k3s.sh
-│   └── 05-startup.sh           # <--- สคริปต์ตั้งค่า Auto Startup ฝั่ง Windows
+│   ├── 05-install-services.sh
+│   └── 06-startup.sh           # <--- สคริปต์ตั้งค่า Auto Startup ฝั่ง Windows
 └── ... (ไฟล์ Manifest อื่นๆ)
 ```
 

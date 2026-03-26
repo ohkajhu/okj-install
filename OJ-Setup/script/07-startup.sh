@@ -34,12 +34,19 @@ section "🚀 Adding WSL to Windows Startup"
 
 # 1. Detect current WSL Distribution name
 log "INFO" "🔍 Detecting current WSL distribution..."
-# Use PowerShell to find the default (*) distro as it's cleaner than parsing UTF-16 from bash directly
-DISTRO_NAME=$(powershell.exe -NoProfile -Command "((wsl.exe -l -v | Select-String '\*') -replace '^[\s\*]+(\S+).*$', '\$1').Trim()" | tr -d '\r\n' || echo "Ubuntu")
 
+# Priority 1: Use native WSL environment variable (Most reliable & efficient)
+DISTRO_NAME=${WSL_DISTRO_NAME:-}
+
+# Priority 2: PowerShell fallback if env var is empty
 if [ -z "$DISTRO_NAME" ]; then
+    DISTRO_NAME=$(powershell.exe -NoProfile -Command "wsl.exe -l -v | Select-String '\*' | ForEach-Object { \$_.ToString().Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)[1] }" | tr -d '\0\r\n' || echo "")
+fi
+
+# Priority 3: Final hard fallback
+if [ -z "$DISTRO_NAME" ] || [ "$DISTRO_NAME" == "Ubuntu" ]; then
     DISTRO_NAME="Ubuntu"
-    log "WARN" "⚠️  Could not detect distro name, defaulting to: $DISTRO_NAME"
+    log "INFO" "Detected WSL Distro (Default): $DISTRO_NAME"
 else
     log "SUCCESS" "Detected WSL Distro: $DISTRO_NAME"
 fi

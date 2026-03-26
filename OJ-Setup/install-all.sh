@@ -84,26 +84,26 @@ cd "$SCRIPT_DIR"
 
 # --- 1. Step 1: Basic Tools ---
 section "Step 1: Installing Basic Tools"
-log_step "Running ./01-install-tools-k3s.sh..."
-./01-install-tools-k3s.sh
+log_step "Running ./script/01-install-tools-k3s.sh..."
+./script/01-install-tools-k3s.sh
 log_success "Basic tools installed."
 
 # --- 2. Step 2: pgAdmin4 ---
 section "Step 2: Setup pgAdmin4"
-log_step "Running ./01-setup-pgadmin.sh..."
-./01-setup-pgadmin.sh
+log_step "Running ./script/01-setup-pgadmin.sh..."
+./script/01-setup-pgadmin.sh
 log_success "pgAdmin4 setup complete."
 
 # --- 3. Step 3: K3s Cluster ---
 section "Step 3: Installing K3s Cluster"
-log_step "Running sudo ./02-install-k3s.sh..."
-sudo ./02-install-k3s.sh
+log_step "Running sudo ./script/02-install-k3s.sh..."
+sudo ./script/02-install-k3s.sh
 log_success "K3s installation complete."
 
 # --- 4. Step 4: Environment Variables ---
 section "Step 4: Setting Environment & Hosts"
-log_step "Running ./03-set-env.sh..."
-./03-set-env.sh
+log_step "Running ./script/03-set-env.sh..."
+./script/03-set-env.sh
 log_success "Environment set."
 
 # --- 5. Step 5: Flux Bootstrap ---
@@ -122,7 +122,19 @@ else
     exit 1
 fi
 
-# --- 6. Final Steps: Summary ---
+# --- 6. Step 6: Cluster Services ---
+section "Step 6: Installing Cluster Services"
+log_step "Running ./install-services.sh..."
+./install-services.sh
+log_success "Cluster services installed."
+
+# --- 7. Step 7: Add WSL to Startup ---
+section "Step 7: Adding WSL to Startup"
+log_step "Running ./script/05-startup.sh..."
+./script/05-startup.sh
+log_success "Startup setup complete."
+
+# --- 8. Final Steps: Summary ---
 create_summary_file "WSL (Windows Subsystem for Linux)" "$FLUX_ENV"
 
 # --- Final Summary ---

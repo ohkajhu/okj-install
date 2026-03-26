@@ -86,15 +86,16 @@ fi
 
 # 8. Set permissions
 log_info "Setting executable permissions on scripts..."
-if [ -d "$TARGET_DIR/script" ]; then
-    find "$TARGET_DIR/script" -maxdepth 1 -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
-fi
+    chmod +x "$TARGET_DIR"/*.sh 2>/dev/null || true
+    if [ -d "$TARGET_DIR/script" ]; then
+        chmod +x "$TARGET_DIR/script"/*.sh 2>/dev/null || true
+    fi
 
 echo -e "${BLUE}===========================================${NC}"
 log_success "Bootstrap complete!"
 echo -e "${BLUE}===========================================${NC}"
 log_info "All files are ready at: ${YELLOW}$TARGET_DIR${NC}"
 log_info "Next Steps:"
-echo -e "  1. ${CYAN}cd $TARGET_DIR/script${NC}"
-echo -e "  2. ${CYAN}./00-install-all.sh${NC} (Recommended to run this for full installation)"
+echo -e "  1. ${CYAN}cd $TARGET_DIR${NC}"
+echo -e "  2. ${CYAN}./install-all.sh${NC} (Recommended to run this for full installation)"
 echo -e "${BLUE}===========================================${NC}"

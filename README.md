@@ -1,3 +1,7 @@
+# 🚀 OKJ POS System Installation Repository
+
+Repository นี้รวบรวมชุดสคริปต์และคอนฟิกูเรชันสำหรับติดตั้งระบบ **OKJ POS** บนสภาพแวดล้อม Kubernetes (K3s) ทั้งในรูปแบบ Linux Server และ Windows (WSL2)
+
 ## 🚀 เริ่มต้นติดตั้งด้วย Bootstrap (แนะนำ)
 
 คุณสามารถเริ่มการติดตั้งใน Linux (WSL หรือ Server) ได้ทันทีโดยใช้คำสั่งเดียวเพื่อดึงไฟล์ทั้งหมดมาไว้ที่ `~/okj-install`:
@@ -6,22 +10,22 @@
 curl -sSL https://raw.githubusercontent.com/ohkajhu/okj-install/main/bootstrap.sh | bash
 ```
 
-*หมายเหตุ: สคริปต์จะตรวจสอบสภาพแวดล้อมว่าเป็น WSL หรือ Server โดยอัตโนมัติ และจะดึงไฟล์จาก Git มาวางไว้ที่ `~/okj-install` เพื่อใช้ในการติดตั้งต่อ*
+*หมายเหตุ: สคริปต์จะตรวจสอบสภาพแวดล้อมว่าเป็น WSL หรือ Server โดยอัตโนมัติ และจะดาวน์โหลดไฟล์ที่จำเป็นมาวางไว้ที่ `~/okj-install` จากนั้นให้ทำตามขั้นตอนใน Next Steps ที่ปรากฏบนหน้าจอ*
 
 ---
 
-## 📂 โครงสร้าง Repository
+## 📂 โครงสร้างโปรเจกต์ (Project Structure)
 
-Repository นี้แบ่งออกเป็น 2 รูปแบบหลักตามสภาพแวดล้อมที่ใช้งาน:
+ชุดติดตั้งแบ่งออกเป็น 2 รูปแบบตามสภาพแวดล้อมการใช้งาน:
 
 ### 1. [OJ-Setup](./OJ-Setup/) (Windows + WSL2)
-เหมาะสำหรับเครื่อง POS หน้าร้านที่ติดตั้งระบบปฏิบัติการ **Windows** โดยใช้ WSL2 (Ubuntu 22.04) ในการรันชุดเครื่องมือ POS
-- **จุดเด่น**: มี Batch file สำหรับเปิดระบบอัตโนมัติ (Startup), มีระบบ Sync เวลาจาก Windows ไปยัง WSL
-- **คู่มือติดตั้ง**: [Full Installation Guide (WSL)](./OJ-Setup/OKJ-Setup-Detailed-Guide.md)
+เหมาะสำหรับเครื่อง POS หน้าร้านที่ใช้ **Windows** โดยรันระบบผ่าน WSL2 (Ubuntu 22.04)
+- **จุดเด่น**: มีระบบ **Auto Startup** ฝั่ง Windows, Sync เวลาจากโฮสต์อัตโนมัติ
+- **คู่มือติดตั้ง**: [Full Installation Guide (WSL)](./OJ-Setup/OJ-Setup-Guide.md)
 
 ### 2. [OKJ-Setup](./OKJ-Setup/) (Ubuntu Server)
-เหมาะสำหรับเครื่อง **Server** หรือเครื่องที่ลง Linux (Ubuntu) เป็น OS หลักในการรันระบบ POS
-- **จุดเด่น**: มีความเสถียรสูง เหมาะสำหรับใช้เป็น Server กลางของสาขา
+เหมาะสำหรับเครื่อง **Server** กลางของสาขาที่ใช้ Ubuntu เป็น OS หลัก
+- **จุดเด่น**: มีความเสถียรสูงสำหรับงาน Server, ติดตั้ง pgAdmin แบบ Web Access
 - **คู่มือติดตั้ง**: [Setup Guide (Server)](./OKJ-Setup/OKJ-Setup-Guide.md)
 
 ---
@@ -29,25 +33,37 @@ Repository นี้แบ่งออกเป็น 2 รูปแบบหล
 ## 🛠️ เครื่องมือหลักในชุดติดตั้ง (Component Stack)
 - **Kubernetes**: [K3s](https://k3s.io/) (Lightweight Kubernetes)
 - **GitOps**: [FluxCD](https://fluxcd.io/) (Automated Deployment)
-- **Database**: [CloudNativePG](https://cloudnative-pg.io/) (PostgreSQL for Kubernetes)
-- **Cache**: Redis 7.4
-- **Monitoring**: Asynqmon & pgAdmin4
+- **Database**: [CloudNativePG](https://cloudnative-pg.io/) (PostgreSQL for K8s)
+- **Cache & Monitor**: Redis 7.4, Asynqmon, pgAdmin4
 
 ---
 
-## 🚀 ขั้นตอนการติดตั้งเบื้องต้น (Quick Overview)
+## 🚀 ขั้นตอนการติดตั้งอย่างรวดเร็ว (Master Installer)
 
-ลำดับการติดตั้งพื้นฐานในทั้งสองสภาพแวดล้อมประกอบด้วย 4 ขั้นตอนหลักในโฟลเดอร์ `script/`:
+เราได้เตรียมสคริปต์ **Master Installer** เพื่อลดขั้นตอนยุ่งยาก ให้เหลือเพียงคำสั่งเดียวหลังจากใช้ Bootstrap:
 
-1.  **`01-install-tools-k3s.sh`**: ติดตั้ง Docker tools, FluxCD, Helm และ Desktop Environment (เฉพาะ WSL)
-2.  **`01-setup-pgadmin.sh`**: ติดตั้ง pgAdmin4
-3.  **`02-install-k3s.sh`**: ติดตั้ง K3s Cluster พร้อมสร้าง Alias `k` แทน `kubectl`
-4.  **`03-set-env.sh`**: ระบุ Tenant / สาขา เพื่อตั้งค่า Domain และ Environment
-5.  **`Bootstrap Flux`**: นำเข้าไฟล์โปรเจกต์จาก `flux-bootstrap.tar.gz` เพื่อดึงแอพเข้าคลัสเตอร์
+1. **เข้าไปยังโฟลเดอร์โปรเจกต์**:
+   ```bash
+   cd ~/okj-install
+   ```
+2. **รันการติดตั้งทั้งหมด**:
+   ```bash
+   chmod +x *.sh script/*.sh
+   ./install-all.sh
+   ```
+
+### สิ่งที่สคริปต์ Master Installer จัดการให้:
+- ✅ ติดตั้ง Tools พื้นฐาน (Git, Flux, Helm, etc.)
+- ✅ ติดตั้งและตั้งค่า K3s Cluster
+- ✅ ตั้งค่า Environment & Hosts ประจำสาขา
+- ✅ Bootstrap FluxCD (Staging/Production)
+- ✅ ติดตั้ง Services (Database, Redis, CMs)
+- ✅ สรุปข้อมูลการเข้าใช้งาน (Credentials & IPs)
 
 ---
 
-## ⚠️ ข้อควรระวังก่อนเริ่ม
-**การตั้งค่าสาขา**: ก่อนติดตั้ง ควรแก้ไขไฟล์ในโฟลเดอร์ `configmap/` เพื่อระบุ Token และรหัสผ่านที่ถูกต้องของแต่ละสาขา
+## ⚠️ ข้อควรระวัง
+**การตั้งค่า Token**: ก่อนใช้งานจริง ควรตรวจสอบและแก้ไขไฟล์ในโฟลเดอร์ `configmap/` เพื่อระบุ Token ของแต่ละสาขาให้ถูกต้อง (โดยเฉพาะ `pos-shop-service-cm.yaml`)
 
 ---
+© 2026 TOTHEMARS - OKJ POS Deployment System

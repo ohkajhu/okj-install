@@ -51,7 +51,7 @@
 ```bash
 curl -sSL https://raw.githubusercontent.com/ohkajhu/okj-install/main/bootstrap.sh | bash
 ```
-> **สิงที่เกิดขึ้น:** สคริปต์จะ Clone โปรเจกต์จาก Git และนำไฟล์สำหรับ WSL มาวางไว้ที่ `~/usb` ให้โดยอัตโนมัติ
+> **สิงที่เกิดขึ้น:** สคริปต์จะ Clone โปรเจกต์จาก Git และนำไฟล์สำหรับ WSL มาวางไว้ที่ `~/okj-install` ให้โดยอัตโนมัติ
 
 ---
 
@@ -60,9 +60,9 @@ curl -sSL https://raw.githubusercontent.com/ohkajhu/okj-install/main/bootstrap.s
 2. พิมพ์คำสั่งเพื่อก๊อปปี้ไฟล์จากโฟลเดอร์ที่ดาวน์โหลดไว้บน Windows:
    *(หมายเหตุ: ปรับ path ให้ตรงกับที่อยู่ไฟล์จริงบนเครื่อง Windows)*
    ```bash
-   mkdir -p ~/usb
-   cp -r /mnt/c/Users/$(powershell.exe -c "echo \$env:USERNAME" | tr -d '\r')/Downloads/OJ-Setup/* ~/usb/
-   cd ~/usb/script
+   mkdir -p ~/okj-install
+   cp -r /mnt/c/Users/$(powershell.exe -c "echo \$env:USERNAME" | tr -d '\r')/Downloads/OJ-Setup/* ~/okj-install/
+   cd ~/okj-install/script
    chmod +x *.sh
    ```
 
@@ -76,7 +76,7 @@ curl -sSL https://raw.githubusercontent.com/ohkajhu/okj-install/main/bootstrap.s
 สคริปต์นี้จะลง Desktop Environment (XFCE4), AnyDesk, Git, Docker tools, FluxCD, Helm, Kubeconform ฯลฯ
 
 ```bash
-cd ~/usb/script
+cd ~/okj-install/script
    ./01-install-tools-k3s.sh
 ```
 > **สิ่งที่เกิดขึ้น:** สคริปต์จะอัปเดตระบบและติดตั้งโปรแกรมจำเป็น ใช้เวลาสักพัก
@@ -119,7 +119,7 @@ sudo ./02-install-k3s.sh
 1. **แตกไฟล์ Bootstrap**:
    ```bash
    cd ~
-   tar -xvf ~/usb/flux-bootstrap.tar.gz --no-same-owner --no-same-permissions
+   tar -xvf ~/okj-install/flux-bootstrap.tar.gz --no-same-owner --no-same-permissions
    ```
 
 2. **รันสคริปต์ติดตั้ง Flux**:
@@ -136,7 +136,7 @@ sudo ./02-install-k3s.sh
 
 1. **สร้าง Namespace และลง Database (Postgres)**:
    ```bash
-   cd ~/usb
+   cd ~/okj-install
    sudo k create ns pgsql
    sudo k apply -f okj-pos-pgsql.yaml -n pgsql
    ```
@@ -149,7 +149,7 @@ sudo ./02-install-k3s.sh
 
 3. **ลง ConfigMap ของสาขา**:
    ```bash
-   cd ~/usb/configmap
+   cd ~/okj-install/configmap
    sudo k apply -f pos-shop-service-cm.yaml -n apps
    sudo k apply -f pos-shop-terminal-cm.yaml -n apps
    ```
@@ -196,6 +196,6 @@ sudo ./02-install-k3s.sh
 
 ## การแก้ไขปัญหาเบื้องต้น (Troubleshooting)
 
-- **IP เปลี่ยน/ย้ายเครื่อง**: รัน `cd ~/usb/script && sudo ./04-update-ip-k3s.sh`
+- **IP เปลี่ยน/ย้ายเครื่อง**: รัน `cd ~/okj-install/script && sudo ./04-update-ip-k3s.sh`
 - **ต้องการลบ K3s**: รัน `sudo ./02-uninstall-k3s.sh`
 - **ต้องการลบ Tools ทั้งหมด**: รัน `sudo ./01-uninstall-tools-k3s.sh`

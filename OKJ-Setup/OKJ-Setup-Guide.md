@@ -38,7 +38,7 @@ OKJ-Setup/
 - อินเทอร์เน็ตสำหรับดาวน์โหลดแพ็กเกจ
 
 ## เริ่มต้นใช้งาน (วิธีที่แนะนำ)
-หากเครื่อง Server ต่ออินเทอร์เน็ตได้ แนะนำให้ใช้ Bootstrap script เพื่อดึงไฟล์จาก Git มาไว้ที่ `~/usb`:
+หากเครื่อง Server ต่ออินเทอร์เน็ตได้ แนะนำให้ใช้ Bootstrap script เพื่อดึงไฟล์จาก Git มาไว้ที่ `~/okj-install`:
 ```bash
 curl -sSL https://raw.githubusercontent.com/ohkajhu/okj-install/main/bootstrap.sh | bash
 ```
@@ -47,9 +47,9 @@ curl -sSL https://raw.githubusercontent.com/ohkajhu/okj-install/main/bootstrap.s
 ```bash
 # ตรวจสอบว่า USB อยู่ที่ dev ไหน (เช่น /dev/sdb1)
 sudo fdisk -l
-mkdir -p ~/usb
-sudo mount /dev/sdb1 ~/usb
-cd ~/usb/script
+mkdir -p ~/okj-install
+sudo mount /dev/sdb1 ~/okj-install
+cd ~/okj-install/script
 chmod +x *.sh
 ```
 
@@ -77,14 +77,14 @@ chmod +x *.sh
 
    ```bash
    cd ~
-   tar -xvf ~/usb/flux-bootstrap.tar.gz --no-same-owner --no-same-permissions
+   tar -xvf ~/okj-install/flux-bootstrap.tar.gz --no-same-owner --no-same-permissions
    cd .bootstrap
    sudo ./install-prd.sh
    ```
 
 5. **ติดตั้งบริการต่าง ๆ ในคลัสเตอร์**
 
-   cd ~/usb
+   cd ~/okj-install
    ```bash
    sudo kubectl create namespace pgsql 
    sudo kubectl apply -f okj-pos-pgsql.yaml -n pgsql
@@ -94,7 +94,7 @@ chmod +x *.sh
 
 ุ6. **ติดตั้งบริการต่าง ๆ ในคลัสเตอร์**
 
-   cd ~/usb/configmap
+   cd ~/okj-install/configmap
    ```bash
    sudo kubectl apply -f pos-shop-service-cm.yaml -n apps
    sudo kubectl apply -f pos-shop-terminal-cm.yaml -n apps

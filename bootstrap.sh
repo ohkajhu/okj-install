@@ -2,9 +2,8 @@
 set -e
 
 # --- Configuration ---
-# แนะนำให้เปลี่ยน URL เป็น Repo จริงของคุณ
 REPO_URL="https://github.com/ohkajhu/okj-install.git"
-TARGET_DIR="$HOME/usb"
+TARGET_DIR="$HOME/okj-install"
 
 echo "==========================================="
 echo "   OKJ POS System Bootstrap Script"
@@ -19,10 +18,10 @@ fi
 # 2. Detect environment (WSL vs Server)
 if grep -qi microsoft /proc/version 2>/dev/null; then
     SETUP_TYPE="OJ-Setup"
-    echo "🖥️  Detected WSL environment"
+    echo "🖥️ Detected WSL environment"
 else
     SETUP_TYPE="OKJ-Setup"
-    echo "🛠️  Detected Ubuntu Server environment"
+    echo "🛠️ Detected Ubuntu Server environment"
 fi
 
 # 3. Clone Repository
@@ -35,7 +34,7 @@ else
     exit 1
 fi
 
-# 4. Prepare ~/usb
+# 4. Prepare ~/okj-install
 echo "📁 Preparing $TARGET_DIR directory..."
 mkdir -p "$TARGET_DIR"
 

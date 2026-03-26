@@ -246,17 +246,28 @@ install_desktop() {
 }
 
 install_firefox() {
-    show_progress "🌐 Installing Firefox Browser..."
+    show_progress "🌐 Installing Firefox Browser (PPA)..."
     
     if is_installed firefox; then
         log "INFO" "✅ Firefox is already installed."
     else
-        log "INFO" "📦 Installing Firefox..."
-        # On Ubuntu 22.04+, apt install firefox is a transition to snap
+        log "INFO" "📦 Adding Mozilla PPA for native installation (faster)..."
+        sudo apt install -y software-properties-common -qq
+        sudo add-apt-repository -y ppa:mozillateam/ppa
+        
+        # Set priority to PPA to avoid the snap transition and make it native
+        echo '
+Package: *
+Pin: release o=LP-PPA-mozillateam
+Pin-Priority: 1001
+' | sudo tee /etc/apt/preferences.d/mozilla-firefox
+        
+        log "INFO" "📦 Updating and installing Firefox..."
+        sudo apt update -qq
         sudo apt install -y firefox -qq
         
         if is_installed firefox; then
-            log "SUCCESS" "✅ Firefox installation successful."
+            log "SUCCESS" "✅ Firefox installation successful (Native)."
         else
             log "ERROR" "❌ Firefox installation failed."
         fi

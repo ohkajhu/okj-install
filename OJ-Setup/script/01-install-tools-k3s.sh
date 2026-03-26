@@ -245,31 +245,20 @@ install_desktop() {
     log "SUCCESS" "✅ XFCE4 and XRDP installation complete."
 }
 
-install_firefox() {
-    show_progress "🌐 Installing Firefox Browser (PPA)..."
+install_browser() {
+    show_progress "🌐 Installing Midori Browser (Lightweight)..."
     
-    if is_installed firefox; then
-        log "INFO" "✅ Firefox is already installed."
+    if is_installed midori; then
+        log "INFO" "✅ Midori is already installed."
     else
-        log "INFO" "📦 Adding Mozilla PPA for native installation (faster)..."
-        sudo apt install -y software-properties-common -qq
-        sudo add-apt-repository -y ppa:mozillateam/ppa
-        
-        # Set priority to PPA to avoid the snap transition and make it native
-        echo '
-Package: *
-Pin: release o=LP-PPA-mozillateam
-Pin-Priority: 1001
-' | sudo tee /etc/apt/preferences.d/mozilla-firefox
-        
-        log "INFO" "📦 Updating and installing Firefox..."
+        log "INFO" "📦 Updating and installing Midori..."
         sudo apt update -qq
-        sudo apt install -y firefox -qq
+        sudo apt install -y midori -qq
         
-        if is_installed firefox; then
-            log "SUCCESS" "✅ Firefox installation successful (Native)."
+        if is_installed midori; then
+            log "SUCCESS" "✅ Midori installation successful."
         else
-            log "ERROR" "❌ Firefox installation failed."
+            log "ERROR" "❌ Midori installation failed."
         fi
     fi
 }
@@ -947,7 +936,7 @@ main() {
     
     update_system || { log "ERROR" "❌ System update failed"; exit 1; }
     install_desktop || { log "ERROR" "❌ Desktop installation failed"; exit 1; }
-    install_firefox || { log "ERROR" "❌ Firefox installation failed"; exit 1; }
+    install_browser || { log "ERROR" "❌ Browser installation failed"; exit 1; }
     install_git || { log "ERROR" "❌ Git installation failed"; exit 1; }
     install_ssh || { log "ERROR" "❌ SSH installation failed"; exit 1; }
     install_fluxcd || { log "ERROR" "❌ FluxCD installation failed"; exit 1; }

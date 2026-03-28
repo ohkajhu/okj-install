@@ -1,13 +1,30 @@
 #!/bin/bash
 set -e
 
+# --- Premium UI/UX Colors ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
+WHITE='\033[1;37m'
 NC='\033[0m'
+
+B_RED='\033[1;31m'
+B_GREEN='\033[1;32m'
+B_YELLOW='\033[1;33m'
+B_BLUE='\033[1;34m'
+B_PURPLE='\033[1;35m'
+B_CYAN='\033[1;36m'
+B_WHITE='\033[1;37m'
+
+BG_RED='\033[41;1;37m'
+BG_GREEN='\033[42;1;37m'
+BG_YELLOW='\033[43;1;37m'
+BG_BLUE='\033[44;1;37m'
+BG_PURPLE='\033[45;1;37m'
+BG_CYAN='\033[46;1;37m'
 
 # Configuration variables
 KUSTOMIZE_VERSION="latest"
@@ -26,22 +43,31 @@ log() {
     local level=$1
     shift
     local message="$*"
-    local timestamp=$(TZ='Asia/Bangkok' date '+%H:%M:%S %d-%m-%Y')
+    local log_out="${LOGFILE:-/dev/null}"
     
     case $level in
-        "INFO")    echo -e "${BLUE}[INFO]${NC} [$timestamp] $message" | tee -a "$LOGFILE" ;;
-        "WARN")    echo -e "${YELLOW}[WARN]${NC} [$timestamp] $message" | tee -a "$LOGFILE" ;;
-        "ERROR")   echo -e "${RED}[ERROR]${NC} [$timestamp] $message" | tee -a "$LOGFILE" ;;
-        "SUCCESS") echo -e "${GREEN}[SUCCESS]${NC} [$timestamp] $message" | tee -a "$LOGFILE" ;;
-        "STEP")    echo -e "${PURPLE}[STEP]${NC} [$timestamp] $message" | tee -a "$LOGFILE" ;;
+        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC}    $message" | tee -a "$log_out" ;;
+        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC}    $message" | tee -a "$log_out" ;;
+        "ERROR")   echo -e "\n${BG_RED}${B_WHITE} ❌ ERROR ${NC} ${B_RED}$message${NC}\n" | tee -a "$log_out" ;;
+        "SUCCESS") echo -e "     ${B_GREEN}╰─ ✔${NC} ${B_GREEN}$message${NC}" | tee -a "$log_out" ;;
+        "STEP")    echo -e "${B_CYAN} ➜ ${NC} ${B_WHITE}$message${NC}" | tee -a "$log_out" ;;
     esac
 }
 
 show_progress() {
     ((CURRENT_STEP++))
     local desc=$1
-    echo -e "${CYAN}[$CURRENT_STEP/$TOTAL_STEPS]${NC} $desc"
-    log "STEP" "[$CURRENT_STEP/$TOTAL_STEPS] $desc"
+    local title="STEP $CURRENT_STEP/$TOTAL_STEPS: $desc"
+    local clean_title=$(echo -e "$title" | sed 's/\x1b\[[0-9;]*m//g')
+    local title_len=${#clean_title}
+    local width=55
+    local pad_len=$((width - title_len))
+    [ $pad_len -lt 0 ] && pad_len=0
+    local padding=$(printf "%${pad_len}s" "")
+
+    echo -e "\n${B_PURPLE}╭──────────────────────────────────────────────────────────╮${NC}" | tee -a "$LOGFILE"
+    echo -e "${B_PURPLE}│${NC} ${B_WHITE}${title}${NC}${padding} ${B_PURPLE}│${NC}" | tee -a "$LOGFILE"
+    echo -e "${B_PURPLE}╰──────────────────────────────────────────────────────────╯${NC}" | tee -a "$LOGFILE"
 }
 
 cleanup() {

@@ -24,19 +24,22 @@ log() {
     local timestamp=$(TZ='Asia/Bangkok' date '+%H:%M:%S %d-%m-%Y')
     
     case $level in
-        "INFO")    echo -e "${BLUE}[INFO]${NC} [$timestamp] $message" | tee -a "$LOGFILE" ;;
-        "WARN")    echo -e "${YELLOW}[WARN]${NC} [$timestamp] $message" | tee -a "$LOGFILE" ;;
-        "ERROR")   echo -e "${RED}[ERROR]${NC} [$timestamp] $message" | tee -a "$LOGFILE" ;;
-        "SUCCESS") echo -e "${GREEN}[SUCCESS]${NC} [$timestamp] $message" | tee -a "$LOGFILE" ;;
-        "STEP")    echo -e "${PURPLE}[STEP]${NC} [$timestamp] $message" | tee -a "$LOGFILE" ;;
+        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC}    $message" | tee -a "$LOGFILE" ;;
+        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC}    $message" | tee -a "$LOGFILE" ;;
+        "ERROR")   echo -e "
+${BG_RED} ❌ ERROR ${NC} $message
+" | tee -a "$LOGFILE" ;;
+        "SUCCESS") echo -e "     ${B_GREEN}╰─ ✔${NC} $message" | tee -a "$LOGFILE" ;;
+        "STEP")    echo -e "${B_CYAN} ➜ ${NC} ${B_WHITE}$message${NC}" | tee -a "$LOGFILE" ;;
     esac
 }
 
 show_progress() {
     ((CURRENT_STEP++))
     local desc=$1
-    echo -e "${CYAN}[$CURRENT_STEP/$TOTAL_STEPS]${NC} $desc"
-    log "STEP" "[$CURRENT_STEP/$TOTAL_STEPS] $desc"
+    echo -e "
+${BG_PURPLE} ✦ STEP $CURRENT_STEP/$TOTAL_STEPS ${NC} ${B_PURPLE}───────────────────────────────────────────────────${NC}" | tee -a "$LOGFILE"
+    echo -e "${B_CYAN} ➜ ${NC} ${B_WHITE}$desc${NC}" | tee -a "$LOGFILE"
 }
 
 error_handler() {

@@ -1,22 +1,61 @@
 #!/bin/bash
 set -euo pipefail
 
-# --- Colors ---
-PURPLE='\033[0;35m'
-CYAN='\033[0;36m'
+# --- Premium UI/UX Colors ---
+RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-RED='\033[0;31m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
 NC='\033[0m'
 
+B_RED='\033[1;31m'
+B_GREEN='\033[1;32m'
+B_YELLOW='\033[1;33m'
+B_BLUE='\033[1;34m'
+B_PURPLE='\033[1;35m'
+B_CYAN='\033[1;36m'
+B_WHITE='\033[1;37m'
+
+BG_RED='\033[41;1;37m'
+BG_GREEN='\033[42;1;37m'
+BG_YELLOW='\033[43;1;37m'
+BG_BLUE='\033[44;1;37m'
+BG_PURPLE='\033[45;1;37m'
+BG_CYAN='\033[46;1;37m'
+
 # --- Logging Helpers ---
-log_step() { echo -e "${PURPLE}[MASTER]${NC} 🚀 $1"; }
-log_success() { echo -e "${GREEN}[MASTER]${NC} ✅ $1"; }
+log_step() { echo -e "\n${B_CYAN} ➜ ${NC} ${B_WHITE}$1${NC}"; }
+log_success() { echo -e "   ${B_GREEN}╰─ ✔ $1${NC}"; }
+log_err() { echo -e "\n${BG_RED}${B_WHITE} ❌ ERROR ${NC} ${B_RED}$1${NC}\n"; }
 
 section() {
-    echo -e "\n${PURPLE}===========================================${NC}"
-    echo -e "${PURPLE}   $*${NC}"
-    echo -e "${PURPLE}===========================================${NC}"
+    local title="$1"
+    local clean_title=$(echo -e "$title" | sed 's/\x1b\[[0-9;]*m//g')
+    local title_len=${#clean_title}
+    local width=55
+    local pad_len=$((width - title_len))
+    [ $pad_len -lt 0 ] && pad_len=0
+    local padding=$(printf "%${pad_len}s" "")
+
+    echo -e "\n${B_PURPLE}╭──────────────────────────────────────────────────────────╮${NC}"
+    echo -e "${B_PURPLE}│${NC} ${B_WHITE}${title}${NC}${padding} ${B_PURPLE}│${NC}"
+    echo -e "${B_PURPLE}╰──────────────────────────────────────────────────────────╯${NC}"
+}
+
+print_banner() {
+    clear
+    echo -e "${B_CYAN}"
+    echo '  ██████╗ ██╗  ██╗     ██╗   ██████╗  ██████╗ ███████╗'
+    echo ' ██╔═══██╗██║ ██╔╝     ██║   ██╔══██╗██╔═══██╗██╔════╝'
+    echo ' ██║   ██║█████╔╝      ██║   ██████╔╝██║   ██║███████╗'
+    echo ' ██║   ██║██╔═██╗ ██   ██║   ██╔═══╝ ██║   ██║╚════██║'
+    echo ' ╚██████╔╝██║  ██╗╚█████╔╝   ██║     ╚██████╔╝███████║'
+    echo '  ╚═════╝ ╚═╝  ╚═╝ ╚════╝    ╚═╝      ╚═════╝ ╚══════╝'
+    echo -e "${NC}${B_PURPLE}   ━━━━━━  A U T O M A T I O N   S Y S T E M  ━━━━━━${NC}"
+    echo -e "${NC}${B_WHITE}                                       By TOTHEMARS 🚀${NC}\n"
 }
 
 create_summary_file() {
@@ -70,22 +109,24 @@ create_summary_file() {
 
 # --- Check Permissions ---
 if [ "$EUID" -eq 0 ]; then
-   echo -e "${RED}[ERROR] Please run this script as a regular user, not root/sudo.${NC}"
+   log_err "Please run this script as a regular user, not root/sudo."
    exit 1
 fi
 
-section "🚀 OKJ POS SYSTEM - MASTER INSTALLER (WSL)"
+print_banner
+section "OKJ POS SYSTEM - MASTER INSTALLER (WSL)"
 
 # --- 0. Get Environment Choice ---
-echo -e "${CYAN}Please select the Flux environment to install:${NC}"
-echo "  1) staging (stg)"
-echo "  2) production (prd)"
-read -p "Please select (1 or 2): " ENV_CHOICE
+echo -e "${B_CYAN}Please select the Flux environment to install:${NC}"
+echo -e "  ${B_WHITE}1) staging (stg)${NC}"
+echo -e "  ${B_WHITE}2) production (prd)${NC}"
+echo ""
+read -p "👉 Please select (1 or 2): " ENV_CHOICE
 
 case $ENV_CHOICE in
     1) FLUX_SCRIPT="install-stg.sh"; FLUX_ENV="staging" ;;
     2) FLUX_SCRIPT="install-prd.sh"; FLUX_ENV="production" ;;
-    *) echo -e "${RED}❌ Invalid choice. Installation cancelled.${NC}"; exit 1 ;;
+    *) log_err "Invalid choice. Installation cancelled."; exit 1 ;;
 esac
 
 # Get script directory
@@ -159,13 +200,16 @@ log_success "Shop configuration complete."
 create_summary_file "WSL (Windows Subsystem for Linux)" "$FLUX_ENV"
 
 # --- Final Summary ---
-section "🎉 MASTER INSTALLATION COMPLETE"
-echo -e "${GREEN}System installation completed successfully!${NC}"
-echo -e "You can find the access details at:"
-echo -e "${YELLOW}cat ~/okj-install/install-summary.txt${NC}"
-echo -e "-------------------------------------------"
-echo -e "${CYAN}Node Status:${NC}"
-KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get node -o wide 2>/dev/null || echo "Unable to get node status."
-echo -e "\n${CYAN}Pod Status (All Namespaces):${NC}"
-KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get pod -A 2>/dev/null || echo "Unable to get pod status."
-echo -e "==========================================="
+echo -e "\n${B_GREEN}╭─────────────────────────────────────────────────────────╮${NC}"
+echo -e "${B_GREEN}│ 🎉 MASTER INSTALLATION COMPLETED SUCCESSFULLY           │${NC}"
+echo -e "${B_GREEN}╰─────────────────────────────────────────────────────────╯${NC}"
+echo -e "  A detailed summary with credentials has been generated:"
+echo -e "  👉 ${B_YELLOW}cat ~/okj-install/install-summary.txt${NC}\n"
+
+echo -e "${B_CYAN}╭─ 🌐 SYSTEM STATUS ───────────────────────────────────────╮${NC}"
+echo -e "${B_CYAN}│ Nodes:${NC}"
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get node -o wide 2>/dev/null | awk '{print "│  " $0}' || echo "│  Unable to get node status."
+echo -e "${B_CYAN}│${NC}"
+echo -e "${B_CYAN}│ Pods (All Namespaces):${NC}"
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get pod -A 2>/dev/null | awk '{print "│  " $0}' || echo "│  Unable to get pod status."
+echo -e "${B_CYAN}╰──────────────────────────────────────────────────────────╯${NC}"

@@ -46,8 +46,8 @@ log() {
     local log_out="${LOGFILE:-/dev/null}"
     
     case $level in
-        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC}    $message" | tee -a "$log_out" ;;
-        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC}    $message" | tee -a "$log_out" ;;
+        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC} $message" | tee -a "$log_out" ;;
+        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC} $message" | tee -a "$log_out" ;;
         "ERROR")   echo -e "\n${BG_RED}${B_WHITE} ❌ ERROR ${NC} ${B_RED}$message${NC}\n" | tee -a "$log_out" ;;
         "SUCCESS") echo -e "     ${B_GREEN}╰─ ✔${NC} ${B_GREEN}$message${NC}" | tee -a "$log_out" ;;
         "STEP")    echo -e "${B_CYAN} ➜ ${NC} ${B_WHITE}$message${NC}" | tee -a "$log_out" ;;
@@ -822,7 +822,7 @@ test_installations() {
     if [ ${#failed[@]} -eq 0 ]; then
         log "SUCCESS" "✅ All tools are working correctly."
     else
-        log "WARN" "⚠️  Tools with issues: ${failed[*]}"
+        log "WARN" "⚠️ Tools with issues: ${failed[*]}"
     fi
 }
 
@@ -832,9 +832,9 @@ show_summary() {
     local ip_address=$(hostname -I | awk '{print $1}' || echo "unknown")
     
     echo
-    echo "=========================================="
-    echo -e "${GREEN}✅ Installation completed successfully!${NC}"
-    echo "=========================================="
+    echo -e "${B_GREEN}──────────────────────────────────────────${NC}"
+    echo -e " ${B_WHITE}✅ Installation completed successfully!${NC}"
+    echo -e "${B_GREEN}──────────────────────────────────────────${NC}"
     echo
     echo -e "${BLUE}📋 Installed Tools:${NC}"
     echo "   🖥️ XFCE4 Desktop + XRDP"
@@ -954,10 +954,10 @@ show_summary() {
 }
 
 main() {
-    echo "======================================================="
-    echo -e "${PURPLE}🚀 TOTHEMARS - Kubernetes Environment Setup Script${NC}"
-    echo -e "${CYAN}📅 $(TZ='Asia/Bangkok' date '+%H:%M:%S %d-%m-%Y')${NC}"
-    echo "======================================================="
+    echo -e "${B_PURPLE}───────────────────────────────────────────────────────${NC}"
+    echo -e " ${B_WHITE}🚀 TOTHEMARS - Kubernetes Environment Setup Script${NC}"
+    echo -e " ${B_CYAN}📅 $(TZ='Asia/Bangkok' date '+%H:%M:%S %d-%m-%Y')${NC}"
+    echo -e "${B_PURPLE}───────────────────────────────────────────────────────${NC}"
     echo
     
     TEMP_DIR=$(mktemp -d)

@@ -1700,10 +1700,10 @@ show_summary() {
 }
 
 main() {
-    echo "======================================================="
-    echo -e "${PURPLE}🚀 TOTHEMARS - pgAdmin4 Web Installation Script${NC}"
-    echo -e "${CYAN}📅 $(TZ='Asia/Bangkok' date '+%H:%M:%S %d-%m-%Y')${NC}"
-    echo "======================================================="
+    echo -e "${B_PURPLE}───────────────────────────────────────────────────────${NC}"
+    echo -e " ${B_WHITE}🚀 TOTHEMARS - pgAdmin4 Web Installation Script${NC}"
+    echo -e " ${B_CYAN}📅 $(TZ='Asia/Bangkok' date '+%H:%M:%S %d-%m-%Y')${NC}"
+    echo -e "${B_PURPLE}───────────────────────────────────────────────────────${NC}"
     echo
     
     log "INFO" "📄 Log file: $LOGFILE"

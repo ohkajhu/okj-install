@@ -389,9 +389,9 @@ verify_removal() {
 
 show_summary() {
     echo
-    echo "=========================================="
-    echo -e "${GREEN}✅ Uninstall completed!${NC}"
-    echo "=========================================="
+    echo -e "${B_GREEN}──────────────────────────────────────────${NC}"
+    echo -e " ${B_WHITE}✅ Uninstall completed!${NC}"
+    echo -e "${B_GREEN}──────────────────────────────────────────${NC}"
     echo
     echo -e "${BLUE}📋 Removed Components:${NC}"
     echo "   🖥️ XFCE4 Desktop Environment"
@@ -419,10 +419,10 @@ show_summary() {
 }
 
 main() {
-    echo "======================================================="
-    echo -e "${PURPLE}🗑️  TOTHEMARS - Kubernetes Tools Uninstaller${NC}"
-    echo -e "${CYAN}📅 $(TZ='Asia/Bangkok' date '+%H:%M:%S %d-%m-%Y')${NC}"
-    echo "======================================================="
+    echo -e "${B_PURPLE}───────────────────────────────────────────────────────${NC}"
+    echo -e " ${B_WHITE}🗑️  TOTHEMARS - Kubernetes Tools Uninstaller${NC}"
+    echo -e " ${B_CYAN}📅 $(TZ='Asia/Bangkok' date '+%H:%M:%S %d-%m-%Y')${NC}"
+    echo -e "${B_PURPLE}───────────────────────────────────────────────────────${NC}"
     echo
     
     log "INFO" "📄 Log file: $LOGFILE"

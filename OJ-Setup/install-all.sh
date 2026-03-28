@@ -40,9 +40,9 @@ section() {
     [ $pad_len -lt 0 ] && pad_len=0
     local padding=$(printf "%${pad_len}s" "")
 
-    echo -e "\n${B_PURPLE}╭──────────────────────────────────────────────────────────╮${NC}"
+    echo -e "${B_PURPLE}╭─────────────────────────────────────────────────────────╮${NC}"
     echo -e "${B_PURPLE}│${NC} ${B_WHITE}${title}${NC}${padding} ${B_PURPLE}│${NC}"
-    echo -e "${B_PURPLE}╰──────────────────────────────────────────────────────────╯${NC}"
+    echo -e "${B_PURPLE}╰─────────────────────────────────────────────────────────╯${NC}"
 }
 
 print_banner() {
@@ -78,9 +78,9 @@ create_summary_file() {
     done
     
     {
-        echo "==========================================="
+        echo "───────────────────────────────────────────"
         echo "    OKJ POS SYSTEM - INSTALLATION SUMMARY"
-        echo "==========================================="
+        echo "───────────────────────────────────────────"
         echo "Date         : $(date '+%Y-%m-%d %H:%M:%S')"
         echo "Environment  : $env_type"
         echo "Tenant/Branch: $tenant_name"
@@ -101,7 +101,7 @@ create_summary_file() {
         echo "Nodes:"
         KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get nodes --no-headers 2>/dev/null | awk '{print "  - " $1 " (" $2 ")"}' || echo "  - No nodes found"
         echo ""
-        echo "==========================================="
+        echo "───────────────────────────────────────────"
     } > "$summary_file"
     
     log_success "Created installation summary at: $summary_file"

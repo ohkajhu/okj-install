@@ -167,7 +167,7 @@ log "SUCCESS" "environment configuration set"
 
 # --- 5. Step 5: Flux Bootstrap ---
 section "♾️ fluxcd bootstrap"
-log_step "extracting flux-bootstrap components..."
+log "STEP" "extracting flux-bootstrap components..."
 cd "$HOME"
 tar -xvf "$HOME/okj-install/flux-bootstrap.tar.gz" --no-same-owner --no-same-permissions >/dev/null
 

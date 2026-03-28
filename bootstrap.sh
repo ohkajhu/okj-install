@@ -1,27 +1,71 @@
 #!/bin/bash
 set -euo pipefail
 
-# --- Colors ---
-GREEN='\033[0;32m'
+# --- Premium UI/UX Colors ---
 RED='\033[0;31m'
+GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
+WHITE='\033[1;37m'
 NC='\033[0m'
+
+B_RED='\033[1;31m'
+B_GREEN='\033[1;32m'
+B_YELLOW='\033[1;33m'
+B_BLUE='\033[1;34m'
+B_PURPLE='\033[1;35m'
+B_CYAN='\033[1;36m'
+B_WHITE='\033[1;37m'
+
+BG_RED='\033[41;1;37m'
+BG_GREEN='\033[42;1;37m'
+BG_YELLOW='\033[43;1;37m'
+BG_BLUE='\033[44;1;37m'
+BG_PURPLE='\033[45;1;37m'
+BG_CYAN='\033[46;1;37m'
 
 # --- Configuration ---
 REPO_URL="https://github.com/ohkajhu/okj-install.git"
 TARGET_DIR="$HOME/okj-install"
 
 # --- Functions ---
-log_info()    { echo -e "${BLUE}[INFO]${NC}  $*"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $*"; }
-log_warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
-log_error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
+log_info()    { echo -e "  ${B_BLUE}ℹ [INFO]${NC} $*"; }
+log_success() { echo -e "     ${B_GREEN}╰─ ✔ ${NC} ${B_GREEN}$*${NC}"; }
+log_warn()    { echo -e "  ${B_YELLOW}⚠ [WARN]${NC} $*"; }
+log_error()   { echo -e "\n${BG_RED}${B_WHITE} ❌ ERROR ${NC} ${B_RED}$*${NC}\n" >&2; exit 1; }
 
-echo -e "${BLUE}===========================================${NC}"
-echo -e "   ${GREEN}OKJ POS System Bootstrap Script${NC}"
-echo -e "${BLUE}===========================================${NC}"
+section() {
+    local title="$1"
+    local clean_title=$(echo -e "$title" | sed 's/\x1b\[[0-9;]*m//g')
+    local title_len=${#clean_title}
+    local width=55
+    local pad_len=$((width - title_len))
+    [ $pad_len -lt 0 ] && pad_len=0
+    local padding=$(printf "%${pad_len}s" "")
+
+    echo -e "${B_PURPLE}╭────────────────────────────────────────────────────────╮${NC}"
+    echo -e "${B_PURPLE}│${NC}${B_WHITE}${title}${NC}${padding}${B_PURPLE}│${NC}"
+    echo -e "${B_PURPLE}╰────────────────────────────────────────────────────────╯${NC}"
+}
+
+print_banner() {
+    clear
+    echo -e "${B_CYAN}"
+    echo '  ██████╗ ██╗  ██╗     ██╗   ██████╗  ██████╗ ███████╗'
+    echo ' ██╔═══██╗██║ ██╔╝     ██║   ██╔══██╗██╔═══██╗██╔════╝'
+    echo ' ██║   ██║█████╔╝      ██║   ██████╔╝██║   ██║███████╗'
+    echo ' ██║   ██║██╔═██╗ ██   ██║   ██╔═══╝ ██║   ██║╚════██║'
+    echo ' ╚██████╔╝██║  ██╗╚█████╔╝   ██║     ╚██████╔╝███████║'
+    echo '  ╚═════╝ ╚═╝  ╚═╝ ╚════╝    ╚═╝      ╚═════╝ ╚══════╝'
+    echo -e "${NC}${B_PURPLE}   ━━━━━━  A U T O M A T I O N   S Y S T E M  ━━━━━━${NC}"
+    echo -e "${NC}${B_WHITE}                                       By TOTHEMARS 🚀${NC}\n"
+}
+
+print_banner
+
+section " 🚀 OKJ POS System Bootstrap Script"
 
 # 1. Pre-flight checks
 if [ "$EUID" -eq 0 ]; then
@@ -91,11 +135,8 @@ log_info "Setting executable permissions on scripts..."
         chmod +x "$TARGET_DIR/script"/*.sh 2>/dev/null || true
     fi
 
-echo -e "${BLUE}===========================================${NC}"
-log_success "Bootstrap complete!"
-echo -e "${BLUE}===========================================${NC}"
-log_info "All files are ready at: ${YELLOW}$TARGET_DIR${NC}"
+section " ✨ Bootstrap Complete!"
+log_info "All files are ready at: ${B_YELLOW}$TARGET_DIR${NC}"
 log_info "Next Steps:"
-echo -e "  1. ${CYAN}cd $TARGET_DIR${NC}"
-echo -e "  2. ${CYAN}./install-all.sh${NC} (Recommended to run this for full installation)"
-echo -e "${BLUE}===========================================${NC}"
+echo -e "  ${B_CYAN}1.${NC} ${B_WHITE}cd $TARGET_DIR${NC}"
+echo -e "  ${B_CYAN}2.${NC} ${B_WHITE}./install-all.sh${NC} ${CYAN}(Recommended to run this for full installation)${NC}\n"

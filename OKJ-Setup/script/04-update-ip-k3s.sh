@@ -37,32 +37,31 @@ if ! command -v k3s >/dev/null 2>&1; then
     log "ERROR" "🚨 k3s command not found. Please ensure k3s is installed correctly."
 fi
 
-# --- 1. Fix: Update IP in Kubeconfig ---
-log "INFO" "⚙️ 1. Updating Kubeconfig (Fixing IP change)..."
-NEW_IP=$(hostname -I | awk '{print $1}')
-log "INFO" "   - Current Node IP detected: $NEW_IP"
-
-# Retrieve latest config and replace 127.0.0.1 with $NEW_IP
-k3s kubectl config view --raw | sed "s/127\.0\.0\.1/$NEW_IP/g" > "$HOME/.kube/config"
-
-chmod 600 "$HOME/.kube/config"
-log "SUCCESS" "✅ Kubeconfig updated successfully."
-
-# --- 2. Fix: Rotate Certificates ---
-log "INFO" "📜 2. Attempting Certificate Rotation..."
+# --- 1. Fix: Rotate Certificates ---
+log "INFO" "📜  1. Attempting Certificate Rotation..."
 log "INFO" "   - Stopping k3s service..."
 sudo systemctl stop k3s
 
 if sudo k3s certificate rotate; then
     log "SUCCESS" "✅ Certificates rotated successfully."
 else
-    log "WARN" "⚠️ Failed to execute k3s certificate rotate."
+    log "WARN" "⚠️  Failed to execute k3s certificate rotate. Check k3s logs."
 fi
 
-log "INFO" "   - Starting k3s service and waiting 15s..."
+log "INFO" "   - Starting k3s service and waiting 15s for components..."
 sudo systemctl start k3s
 sleep 15
 log "SUCCESS" "✅ k3s started."
+
+# --- 2. Fix: Update IP in Kubeconfig ---
+log "INFO" "⚙️  2. Updating Kubeconfig (Fixing IP change)..."
+NEW_IP=$(hostname -I | awk '{print $1}')
+log "INFO" "   - Current Node IP detected: $NEW_IP"
+
+# Read fresh config directly from k3s system path to ensure 127.0.0.1 is available to be replaced
+sudo cat /etc/rancher/k3s/k3s.yaml | sed "s/127\.0\.0\.1/$NEW_IP/g" > "$HOME/.kube/config"
+chmod 600 "$HOME/.kube/config"
+log "SUCCESS" "✅ Kubeconfig updated successfully."
 
 # --- 3. Fix: Re-apply CoreDNS ---
 log "INFO" "🔄 3. Re-applying CoreDNS custom host entries..."

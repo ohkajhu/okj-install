@@ -135,10 +135,10 @@ mount | grep -i k3s | awk '{print $3}' | xargs -r -n 1 umount -f || true
 log "INFO" "🧯 Removing network interfaces..."
 interfaces=(cni0 flannel.1 flannel-v6.1 kube-bridge kube-ipvs0 flannel-wg flannel-wg-v6)
 for iface in "${interfaces[@]}"; do
-    ip link show "$iface" &>/dev/null && {
+    if ip link show "$iface" &>/dev/null; then
         log "INFO" "🔪 Removing interface: $iface"
         run_or_skip ip link delete "$iface"
-    }
+    fi
 done
 
 # 11. Clean veth interfaces
@@ -164,6 +164,13 @@ log "INFO" "🧨 Final cleanup of leftover files..."
 run_or_skip find /etc -name '*k3s*' -type f -delete
 run_or_skip find /var -name '*k3s*' -type d -exec rm -rf {} + 
 run_or_skip find /run -name '*k3s*' -type d -exec rm -rf {} +
+
+# 15. Restore External Container Networking (Docker)
+if command -v docker >/dev/null 2>&1 && systemctl list-unit-files --type=service | grep -q "^docker.service"; then
+    log "INFO" "🐳 Restarting Docker service to restore its network rules (iptables/veth)..."
+    run_or_skip systemctl restart docker
+    log "SUCCESS" "✅ Docker service restarted successfully."
+fi
 
 section "✅ K3s Uninstallation Complete"
 log "SUCCESS" "Verification steps recommended:"

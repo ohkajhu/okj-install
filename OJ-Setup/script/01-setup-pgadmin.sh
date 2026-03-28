@@ -24,8 +24,8 @@ log() {
     local timestamp=$(TZ='Asia/Bangkok' date '+%H:%M:%S %d-%m-%Y')
     
     case $level in
-        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC}    $message" | tee -a "$LOGFILE" ;;
-        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC}    $message" | tee -a "$LOGFILE" ;;
+        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC} $message" | tee -a "$LOGFILE" ;;
+        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC} $message" | tee -a "$LOGFILE" ;;
         "ERROR")   echo -e "
 ${BG_RED} ❌ ERROR ${NC} $message
 " | tee -a "$LOGFILE" ;;
@@ -1683,17 +1683,6 @@ show_summary() {
     echo -e "     Remote: ${BLUE}http://${ip_address}:${APACHE_PORT}/pgadmin4${NC}"
     echo
 
-    # Important Notes
-    echo -e "${CYAN}  💡 Important Notes${NC}"
-    echo
-    echo -e "  ${YELLOW}🔥 Firewall:${NC}"
-    echo -e "     • Make sure firewall allows port ${APACHE_PORT}"
-    echo -e "     • Check port status: ${BLUE}sudo netstat -tlnp | grep :${APACHE_PORT}${NC}"
-    echo
-    echo -e "  ${YELLOW}📄 Log File:${NC}"
-    echo -e "     ${BLUE}$LOGFILE${NC}"
-    echo
-    
     # Final message
     echo -e "${GREEN}🎉 pgAdmin4 Web is Ready to Use!${NC}"
     echo

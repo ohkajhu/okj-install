@@ -20,8 +20,8 @@ log() {
     local timestamp=$(TZ='Asia/Bangkok' date '+%H:%M:%S %d-%m-%Y')
     
     case $level in
-        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC}    $message" | tee -a "$LOGFILE" ;;
-        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC}    $message" | tee -a "$LOGFILE" ;;
+        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC} $message" | tee -a "$LOGFILE" ;;
+        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC} $message" | tee -a "$LOGFILE" ;;
         "ERROR")   echo -e "
 ${BG_RED} ❌ ERROR ${NC} $message
 " | tee -a "$LOGFILE" ;;

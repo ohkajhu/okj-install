@@ -145,6 +145,17 @@ log "INFO" "🏗️ Running k3s-install.sh..."
 /usr/local/bin/k3s-install.sh &> /dev/null
 log "SUCCESS" "✅ k3s installed."
 
+if is_wsl; then
+    log "INFO" "🔧 Applying shared mount fix for WSL (node-exporter support)..."
+    mkdir -p /etc/systemd/system/k3s.service.d
+    cat << 'EOF' > /etc/systemd/system/k3s.service.d/rshared.conf
+[Service]
+ExecStartPre=-/bin/mount --make-rshared /
+EOF
+    systemctl daemon-reload
+    log "SUCCESS" "✅ Shared mount override applied."
+fi
+
 # =============================================================================
 # 7. GENERATE CA CERTS
 # =============================================================================

@@ -1,59 +1,54 @@
 #!/bin/bash
 set -euo pipefail
 
-# --- Premium UI/UX Colors ---
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
+# ─────────────────────────────────────────────────────────────────────────────
+#  PREMIUM UI/UX COLORS (Golden Standard)
+# ─────────────────────────────────────────────────────────────────────────────
+CLR_TITLE='\033[38;5;75m'    # Steel Blue
+CLR_SECTION='\033[38;5;135m'  # Soft Purple
+CLR_SUCCESS='\033[38;5;82m'   # Emerald Green
+CLR_INFO='\033[38;5;111m'    # Sky Blue
+CLR_TXT='\033[38;5;253m'     # Off White
+CLR_DIM='\033[38;5;244m'     # Muted Slate
+CLR_ERR='\033[38;5;196m'     # Crimson
+CLR_WARN='\033[38;5;214m'    # Amber
 NC='\033[0m'
-
-B_RED='\033[1;31m'
-B_GREEN='\033[1;32m'
-B_YELLOW='\033[1;33m'
-B_BLUE='\033[1;34m'
-B_PURPLE='\033[1;35m'
-B_CYAN='\033[1;36m'
-B_WHITE='\033[1;37m'
-
-BG_RED='\033[41;1;37m'
-BG_GREEN='\033[42;1;37m'
-BG_YELLOW='\033[43;1;37m'
-BG_BLUE='\033[44;1;37m'
-BG_PURPLE='\033[45;1;37m'
-BG_CYAN='\033[46;1;37m'
+BOLD='\033[1m'
 
 # --- Logging Helpers ---
+# ─────────────────────────────────────────────────────────────────────────────
+#  MINIMALIST UI FUNCTIONS
+# ─────────────────────────────────────────────────────────────────────────────
 log() {
     local level=$1
     shift
-    local message="$*"
-    local log_out="${LOGFILE:-/dev/null}"
+    local message=$(echo "$*" | tr '[:upper:]' '[:lower:]')
     
     case $level in
-        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC} $message" | tee -a "$log_out" ;;
-        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC} $message" | tee -a "$log_out" ;;
-        "ERROR")   echo -e "\n${BG_RED}${B_WHITE} ❌ ERROR ${NC} ${B_RED}$message${NC}\n" | tee -a "$log_out" ;;
-        "SUCCESS") echo -e "     ${B_GREEN}╰─ ✔${NC} ${B_GREEN}$message${NC}" | tee -a "$log_out" ;;
-        "STEP")    echo -e "${B_CYAN} ➜ ${NC} ${B_WHITE}$message${NC}" | tee -a "$log_out" ;;
+        "INFO")    printf "  ${CLR_DIM}· %s${NC}\n" "$message" ;;
+        "WARN")    printf "  ${CLR_WARN}⚠ %s${NC}\n" "$message" ;;
+        "ERROR")   printf "\n  ${CLR_ERR}✖ error: %s${NC}\n" "$message" ;;
+        "SUCCESS") printf "  ${CLR_SUCCESS}· %s${NC}\n" "$message" ;;
+        "STEP")    printf "  ${CLR_INFO}· %s${NC}\n" "$message" ;;
     esac
 }
 
 section() {
+    local icon=""
     local title="$1"
-    local clean_title=$(echo -e "$title" | sed 's/\x1b\[[0-9;]*m//g')
-    local title_len=${#clean_title}
-    local width=55
-    local pad_len=$((width - title_len))
-    [ $pad_len -lt 0 ] && pad_len=0
-    local padding=$(printf "%${pad_len}s" "")
-
-    echo -e "\n${B_PURPLE}╭──────────────────────────────────────────────────────────╮${NC}"
-    echo -e "${B_PURPLE}│${NC} ${B_WHITE}${title}${NC}${padding} ${B_PURPLE}│${NC}"
-    echo -e "${B_PURPLE}╰──────────────────────────────────────────────────────────╯${NC}"
+    if [ $# -eq 2 ]; then
+        icon="$1"
+        title="$2"
+    elif [[ "$1" =~ ^([^[:alnum:][:space:][:punct:]]+)[[:space:]]+(.*)$ ]]; then
+        icon="${BASH_REMATCH[1]}"
+        title="${BASH_REMATCH[2]}"
+    fi
+    local formatted_title=$(echo "$title" | sed 's/.*/\L&/; s/[a-z]/\U&/1; s/ \([a-z]\)/ \U\1/g')
+    if [ -z "$icon" ]; then
+        printf "\n${CLR_SECTION}${BOLD}▎${NC} ${BOLD}%s${NC}\n" "$formatted_title"
+    else
+        printf "\n${CLR_SECTION}${BOLD}▎${NC} ${icon} ${BOLD}%s${NC}\n" "$formatted_title"
+    fi
 }
 
 # --- Check Permissions ---
@@ -66,32 +61,38 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 KUBECONFIG_PATH="/etc/rancher/k3s/k3s.yaml"
 
-section "🛠️  Interactive POS Shop Configuration"
+section "🛠️ interactive pos shop configuration"
 
 log "INFO" "This script will help you configure the Shop Code and Gateway/RMS Tokens."
 log "INFO" "Configuration File: $BASE_DIR/configmap/pos-shop-service-cm.yaml"
 echo ""
 
 while true; do
-    echo -e "\n${CYAN}--- Please enter the following information ---${NC}"
-    read -p "  1. Enter SHOP_CODE (e.g., JW000): " SHOP_CODE
-    read -p "  2. Enter SHOP_TOKEN (Gateway/RMS): " SHOP_TOKEN
+    echo ""
+    printf "  ${CLR_INFO}👉 1. enter shop_code (e.g. jw101):${NC} "
+    read SHOP_CODE
+    printf "  ${CLR_INFO}👉 2. enter shop_token (gateway):${NC} "
+    read SHOP_TOKEN
     
     if [ -z "$SHOP_CODE" ] || [ -z "$SHOP_TOKEN" ]; then
-        log "WARN" "⚠️ SHOP_CODE and SHOP_TOKEN cannot be empty. Please try again."
+        log "WARN" "shop_code and shop_token cannot be empty"
         continue
     fi
     
-    echo -e "\n${YELLOW}--- Review your information ---${NC}"
-    echo -e "  SHOP_CODE  : ${GREEN}$SHOP_CODE${NC}"
-    echo -e "  SHOP_TOKEN : ${GREEN}$SHOP_TOKEN${NC}"
-    echo -e "${YELLOW}-------------------------------${NC}"
+    echo ""
+    log "INFO" "📋 review information:"
+    echo "  ──────────────────────────────────────────"
+    printf "  ${CLR_DIM}· shop_code  :${NC} %s\n" "$SHOP_CODE"
+    printf "  ${CLR_DIM}· shop_token :${NC} %s\n" "$SHOP_TOKEN"
+    echo "  ──────────────────────────────────────────"
+    echo ""
     
-    read -p "Is this correct? (y/n): " CONFIRM
+    printf "  ${CLR_WARN}👉 is this correct? (y/n):${NC} "
+    read CONFIRM
     if [[ $CONFIRM =~ ^[Yy]$ ]]; then
         break
     else
-        log "INFO" "Resetting... please re-enter the information."
+        log "INFO" "resetting... please re-enter information."
     fi
 done
 
@@ -108,7 +109,7 @@ yq eval ".data.CONFIG_RMS_TOKEN = \"$SHOP_TOKEN\"" -i "$BASE_DIR/configmap/pos-s
 
 log "SUCCESS" "✅ Configuration file updated."
 
-section "🚀 Applying to Cluster"
+section "🚀 applying to cluster"
 log "INFO" "Applying ConfigMap to cluster..."
 if sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/configmap/pos-shop-service-cm.yaml" -n apps; then
     log "SUCCESS" "✅ Shop configuration applied to cluster successfully."
@@ -117,5 +118,4 @@ else
 fi
 
 echo ""
-log "SUCCESS" "🏁 POS Shop setup complete!"
-echo -e "${B_PURPLE}──────────────────────────────────────────────────────────${NC}"
+section "✨ pos shop setup complete"

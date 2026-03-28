@@ -1,61 +1,53 @@
 #!/bin/bash
 set -euo pipefail
 
-# --- Premium UI/UX Colors ---
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
+# ─────────────────────────────────────────────────────────────────────────────
+#  PREMIUM UI/UX COLORS (Golden Standard)
+# ─────────────────────────────────────────────────────────────────────────────
+CLR_TITLE='\033[38;5;75m'    # Steel Blue
+CLR_SECTION='\033[38;5;135m'  # Soft Purple
+CLR_SUCCESS='\033[38;5;82m'   # Emerald Green
+CLR_INFO='\033[38;5;111m'    # Sky Blue
+CLR_TXT='\033[38;5;253m'     # Off White
+CLR_DIM='\033[38;5;244m'     # Muted Slate
+CLR_ERR='\033[38;5;196m'     # Crimson
+CLR_WARN='\033[38;5;214m'    # Amber
 NC='\033[0m'
+BOLD='\033[1m'
 
-B_RED='\033[1;31m'
-B_GREEN='\033[1;32m'
-B_YELLOW='\033[1;33m'
-B_BLUE='\033[1;34m'
-B_PURPLE='\033[1;35m'
-B_CYAN='\033[1;36m'
-B_WHITE='\033[1;37m'
-
-BG_RED='\033[41;1;37m'
-BG_GREEN='\033[42;1;37m'
-BG_YELLOW='\033[43;1;37m'
-BG_BLUE='\033[44;1;37m'
-BG_PURPLE='\033[45;1;37m'
-BG_CYAN='\033[46;1;37m'
-
-# --- Logging Helpers ---
-log_step() { echo -e "\n${B_CYAN} ➜ ${NC} ${B_WHITE}$1${NC}"; }
-log_success() { echo -e "   ${B_GREEN}╰─ ✔ $1${NC}"; }
-log_err() { echo -e "\n${BG_RED}${B_WHITE} ❌ ERROR ${NC} ${B_RED}$1${NC}\n"; }
-
-section() {
-    local title="$1"
-    local clean_title=$(echo -e "$title" | sed 's/\x1b\[[0-9;]*m//g')
-    local title_len=${#clean_title}
-    local width=55
-    local pad_len=$((width - title_len))
-    [ $pad_len -lt 0 ] && pad_len=0
-    local padding=$(printf "%${pad_len}s" "")
-
-    echo -e "${B_PURPLE}╭─────────────────────────────────────────────────────────╮${NC}"
-    echo -e "${B_PURPLE}│${NC} ${B_WHITE}${title}${NC}${padding} ${B_PURPLE}│${NC}"
-    echo -e "${B_PURPLE}╰─────────────────────────────────────────────────────────╯${NC}"
+# ─────────────────────────────────────────────────────────────────────────────
+#  MINIMALIST UI FUNCTIONS
+# ─────────────────────────────────────────────────────────────────────────────
+log() {
+    local level=$1
+    shift
+    local message=$(echo "$*" | tr '[:upper:]' '[:lower:]')
+    
+    case $level in
+        "INFO")    printf "  ${CLR_DIM}· %s${NC}\n" "$message" ;;
+        "WARN")    printf "  ${CLR_WARN}⚠ %s${NC}\n" "$message" ;;
+        "ERROR")   printf "\n  ${CLR_ERR}✖ error: %s${NC}\n" "$message" ;;
+        "SUCCESS") printf "  ${CLR_SUCCESS}· %s${NC}\n" "$message" ;;
+        "STEP")    printf "  ${CLR_INFO}· %s${NC}\n" "$message" ;;
+    esac
 }
 
-print_banner() {
-    clear
-    echo -e "${B_CYAN}"
-    echo '  ██████╗ ██╗  ██╗     ██╗   ██████╗  ██████╗ ███████╗'
-    echo ' ██╔═══██╗██║ ██╔╝     ██║   ██╔══██╗██╔═══██╗██╔════╝'
-    echo ' ██║   ██║█████╔╝      ██║   ██████╔╝██║   ██║███████╗'
-    echo ' ██║   ██║██╔═██╗ ██   ██║   ██╔═══╝ ██║   ██║╚════██║'
-    echo ' ╚██████╔╝██║  ██╗╚█████╔╝   ██║     ╚██████╔╝███████║'
-    echo '  ╚═════╝ ╚═╝  ╚═╝ ╚════╝    ╚═╝      ╚═════╝ ╚══════╝'
-    echo -e "${NC}${B_PURPLE}   ━━━━━━  A U T O M A T I O N   S Y S T E M  ━━━━━━${NC}"
-    echo -e "${NC}${B_WHITE}                                       By TOTHEMARS 🚀${NC}\n"
+section() {
+    local icon=""
+    local title="$1"
+    if [ $# -eq 2 ]; then
+        icon="$1"
+        title="$2"
+    elif [[ "$1" =~ ^([^[:alnum:][:space:][:punct:]]+)[[:space:]]+(.*)$ ]]; then
+        icon="${BASH_REMATCH[1]}"
+        title="${BASH_REMATCH[2]}"
+    fi
+    local formatted_title=$(echo "$title" | sed 's/.*/\L&/; s/[a-z]/\U&/1; s/ \([a-z]\)/ \U\1/g')
+    if [ -z "$icon" ]; then
+        printf "\n${CLR_SECTION}${BOLD}▎${NC} ${BOLD}%s${NC}\n" "$formatted_title"
+    else
+        printf "\n${CLR_SECTION}${BOLD}▎${NC} ${icon} ${BOLD}%s${NC}\n" "$formatted_title"
+    fi
 }
 
 create_summary_file() {
@@ -65,9 +57,8 @@ create_summary_file() {
     local tenant_name=$(grep "^TENANT=" /etc/environment | cut -d'=' -f2 | tr -d "'\"" || echo "Not Set")
     local ip_addr=$(hostname -I | awk '{print $1}')
     
-    # Try to get AnyDesk ID with retries (similar to Step 1)
     local anydesk_id="Not Ready"
-    log_step "Retrieving AnyDesk ID for summary..."
+    log "INFO" "retrieving anydesk id for summary..."
     for i in {1..5}; do
         local current_id=$(anydesk --get-id 2>/dev/null | tr -d ' ' || sudo anydesk --get-id 2>/dev/null | tr -d ' ' || echo "")
         if [[ "$current_id" =~ [0-9] ]]; then
@@ -104,112 +95,126 @@ create_summary_file() {
         echo "───────────────────────────────────────────"
     } > "$summary_file"
     
-    log_success "Created installation summary at: $summary_file"
+    log "SUCCESS" "created installation summary at: $summary_file"
 }
 
 # --- Check Permissions ---
 if [ "$EUID" -eq 0 ]; then
-   log_err "Please run this script as a regular user, not root/sudo."
+   log "ERROR" "please run as regular user, not root/sudo"
    exit 1
 fi
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  MAIN EXECUTION
+# ─────────────────────────────────────────────────────────────────────────────
+print_banner() {
+    clear
+    echo -e "${CLR_TITLE}"
+    echo '  ██████╗ ██╗  ██╗     ██╗   ██████╗  ██████╗ ███████╗'
+    echo ' ██╔═══██╗██║ ██╔╝     ██║   ██╔══██╗██╔═══██╗██╔════╝'
+    echo ' ██║   ██║█████╔╝      ██║   ██████╔╝██║   ██║███████╗'
+    echo ' ██║   ██║██╔═██╗ ██   ██║   ██╔═══╝ ██║   ██║╚════██║'
+    echo ' ╚██████╔╝██║  ██╗╚█████╔╝   ██║     ╚██████╔╝███████║'
+    echo '  ╚═════╝ ╚═╝  ╚═╝ ╚════╝    ╚═╝      ╚═════╝ ╚══════╝'
+    echo -e "${NC}${CLR_SECTION}   ━━━━━━  A U T O M A T I O N   S Y S T E M  ━━━━━━${NC}"
+    echo -e "${CLR_DIM}                                       By TOTHEMARS 🚀${NC}\n"
+}
+
 print_banner
-section "OKJ POS SYSTEM - MASTER INSTALLER (WSL)"
+section "🚀 okj pos system - master installer"
+
+log "INFO" "environment: windows subsystem for linux (wsl)"
 
 # --- 0. Get Environment Choice ---
-echo -e "${B_CYAN}Please select the Flux environment to install:${NC}"
-echo -e "  ${B_WHITE}1) staging (stg)${NC}"
-echo -e "  ${B_WHITE}2) production (prd)${NC}"
-echo ""
-read -p "👉 Please select (1 or 2): " ENV_CHOICE
+printf "\n  ${CLR_INFO}Please select flux environment:${NC}\n"
+printf "    ${BOLD}1)${NC} staging (stg)\n"
+printf "    ${BOLD}2)${NC} production (prd)\n\n"
+printf "  ${CLR_INFO}👉 select (1 or 2):${NC} "
+read ENV_CHOICE
 
 case $ENV_CHOICE in
     1) FLUX_SCRIPT="install-stg.sh"; FLUX_ENV="staging" ;;
     2) FLUX_SCRIPT="install-prd.sh"; FLUX_ENV="production" ;;
-    *) log_err "Invalid choice. Installation cancelled."; exit 1 ;;
+    *) log "ERROR" "invalid choice. installation cancelled."; exit 1 ;;
 esac
 
-# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # --- 1. Step 1: Basic Tools ---
-section "Step 1: Installing Basic Tools"
-log_step "Running ./script/01-install-tools-k3s.sh..."
+section "🧩 installing basic tools"
+log "INFO" "running tools installation script..."
 ./script/01-install-tools-k3s.sh
-log_success "Basic tools installed."
+log "SUCCESS" "basic tools deployment complete"
 
 # --- 2. Step 2: pgAdmin4 ---
-section "Step 2: Setup pgAdmin4"
-log_step "Running ./script/01-setup-pgadmin.sh..."
+section "📉 setup pgadmin4"
+log "INFO" "running pgadmin setup script..."
 ./script/01-setup-pgadmin.sh
-log_success "pgAdmin4 setup complete."
+log "SUCCESS" "pgadmin4 setup complete"
 
 # --- 3. Step 3: K3s Cluster ---
-section "Step 3: Installing K3s Cluster"
-log_step "Running sudo ./script/02-install-k3s.sh..."
+section "☸️ installing k3s cluster"
+log "INFO" "running k3s installation with sudo..."
 sudo ./script/02-install-k3s.sh
-log_success "K3s installation complete."
+log "SUCCESS" "k3s cluster installation complete"
 
 # --- 4. Step 4: Environment Variables ---
-section "Step 4: Setting Environment & Hosts"
-log_step "Running ./script/03-set-env.sh..."
+section "📝 setting environment & hosts"
+log "INFO" "applying environment variables..."
 ./script/03-set-env.sh
-log_success "Environment set."
+log "SUCCESS" "environment configuration set"
 
 # --- 5. Step 5: Flux Bootstrap ---
-section "Step 5: Flux Bootstrap"
-log_step "Extracting flux-bootstrap.tar.gz to home..."
+section "♾️ fluxcd bootstrap"
+log_step "extracting flux-bootstrap components..."
 cd "$HOME"
-tar -xvf "$HOME/okj-install/flux-bootstrap.tar.gz" --no-same-owner --no-same-permissions
+tar -xvf "$HOME/okj-install/flux-bootstrap.tar.gz" --no-same-owner --no-same-permissions >/dev/null
 
 if [ -d ".bootstrap" ]; then
     cd .bootstrap
-    log_step "Installing Flux ($FLUX_SCRIPT)..."
+    log "INFO" "installing fluxcd ($FLUX_SCRIPT)..."
     sudo "./$FLUX_SCRIPT"
-    log_success "Flux installation complete."
+    log "SUCCESS" "fluxcd installation complete"
     cd "$SCRIPT_DIR"
 
-    # เร่งสปีดให้ Flux ซิงค์ทันทีโดยไม่ต้องรอรอบเวลา
-    log_step "Triggering Flux reconcile (forcing immediate GitOps sync)..."
-    sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml flux reconcile kustomization flux-system --with-source || echo -e "${YELLOW}⚠️ Flux reconcile warning (continuing...)${NC}"
+    log "INFO" "triggering immediate gitops sync..."
+    sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml flux reconcile kustomization flux-system --with-source >/dev/null 2>&1 || true
 else
-    echo -e "${RED}❌ .bootstrap directory not found after extraction!${NC}"
+    log "ERROR" "bootstrap directory not found after extraction!"
     exit 1
 fi
 
 # --- 6. Step 6: Cluster Services ---
-section "Step 6: Installing Cluster Services"
-log_step "Running ./script/05-install-services.sh..."
+section "🚀 installing cluster services"
+log "INFO" "running services deployment..."
 ./script/05-install-services.sh
-log_success "Cluster services installed."
+log "SUCCESS" "cluster services deployment initiated"
 
 # --- 7. Step 7: Add WSL to Startup ---
-section "Step 7: Adding WSL to Startup"
-log_step "Running ./script/07-startup.sh..."
+section "🏠" "adding wsl to startup"
+log "INFO" "configuring auto-start for wsl backend..."
 ./script/07-startup.sh
-log_success "Startup setup complete."
+log "SUCCESS" "startup configuration complete"
 
 # --- 8. Step 8: Shop Configuration ---
-section "Step 8: Shop Configuration"
-log_step "Running ./script/06-config-shop.sh..."
+section "🏪 shop configuration"
+log "INFO" "applying shop-specific settings..."
 ./script/06-config-shop.sh
-log_success "Shop configuration complete."
+log "SUCCESS" "shop configuration complete"
 
 # --- 9. Final Steps: Summary ---
 create_summary_file "WSL (Windows Subsystem for Linux)" "$FLUX_ENV"
 
-# --- Final Summary ---
-echo -e "\n${B_GREEN}╭─────────────────────────────────────────────────────────╮${NC}"
-echo -e "${B_GREEN}│ 🎉 MASTER INSTALLATION COMPLETED SUCCESSFULLY           │${NC}"
-echo -e "${B_GREEN}╰─────────────────────────────────────────────────────────╯${NC}"
-echo -e "  A detailed summary with credentials has been generated:"
-echo -e "  👉 ${B_YELLOW}cat ~/okj-install/install-summary.txt${NC}\n"
+# ─────────────────────────────────────────────────────────────────────────────
+#  COMPLETION
+# ─────────────────────────────────────────────────────────────────────────────
+printf "\n"
+printf "  ${CLR_SUCCESS}✨  master installation completed!${NC}\n"
+printf "  ${CLR_DIM}detailed summary: cat ~/okj-install/install-summary.txt${NC}\n\n"
 
-echo -e "${B_CYAN}╭─ 🌐 SYSTEM STATUS ───────────────────────────────────────╮${NC}"
-echo -e "${B_CYAN}│ Nodes:${NC}"
-KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get node -o wide 2>/dev/null | awk '{print "│  " $0}' || echo "│  Unable to get node status."
-echo -e "${B_CYAN}│${NC}"
-echo -e "${B_CYAN}│ Pods (All Namespaces):${NC}"
-KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get pod -A 2>/dev/null | awk '{print "│  " $0}' || echo "│  Unable to get pod status."
-echo -e "${B_CYAN}╰──────────────────────────────────────────────────────────╯${NC}"
+section "🌐 system status"
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get node -o wide 2>/dev/null | awk '{print "  ·  " $0}' || echo "  · Unable to get node status."
+printf "\n"
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get pod -A 2>/dev/null | head -n 15 | awk '{print "  ·  " $0}' || echo "  · Unable to get pod status."
+printf "  ${CLR_DIM}... (showing top 15 pods)${NC}\n\n"

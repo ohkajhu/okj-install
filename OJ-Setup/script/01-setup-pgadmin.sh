@@ -1,13 +1,19 @@
 #!/bin/bash
 set -e
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
-CYAN='\033[0;36m'
+# ─────────────────────────────────────────────────────────────────────────────
+#  PREMIUM UI/UX COLORS (Golden Standard)
+# ─────────────────────────────────────────────────────────────────────────────
+CLR_TITLE='\033[38;5;75m'    # Steel Blue
+CLR_SECTION='\033[38;5;135m'  # Soft Purple
+CLR_SUCCESS='\033[38;5;82m'   # Emerald Green
+CLR_INFO='\033[38;5;111m'    # Sky Blue
+CLR_TXT='\033[38;5;253m'     # Off White
+CLR_DIM='\033[38;5;244m'     # Muted Slate
+CLR_ERR='\033[38;5;196m'     # Crimson
+CLR_WARN='\033[38;5;214m'    # Amber
 NC='\033[0m'
+BOLD='\033[1m'
 
 LOGFILE="/tmp/pgadmin4_install_$(TZ='Asia/Bangkok' date +%Y%m%d_%H%M%S).log"
 TOTAL_STEPS=9
@@ -17,29 +23,29 @@ PGADMIN_EMAIL="${PGADMIN_EMAIL:-admin@ohkajhu.com}"
 PGADMIN_PASSWORD="${PGADMIN_PASSWORD:-Xw2#Rk9xLp}"
 APACHE_PORT="${APACHE_PORT:-8080}"
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  MINIMALIST UI FUNCTIONS
+# ─────────────────────────────────────────────────────────────────────────────
 log() {
     local level=$1
     shift
-    local message="$*"
-    local timestamp=$(TZ='Asia/Bangkok' date '+%H:%M:%S %d-%m-%Y')
+    local message=$(echo "$*" | tr '[:upper:]' '[:lower:]')
     
     case $level in
-        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC} $message" | tee -a "$LOGFILE" ;;
-        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC} $message" | tee -a "$LOGFILE" ;;
-        "ERROR")   echo -e "
-${BG_RED} ❌ ERROR ${NC} $message
-" | tee -a "$LOGFILE" ;;
-        "SUCCESS") echo -e "     ${B_GREEN}╰─ ✔${NC} $message" | tee -a "$LOGFILE" ;;
-        "STEP")    echo -e "${B_CYAN} ➜ ${NC} ${B_WHITE}$message${NC}" | tee -a "$LOGFILE" ;;
+        "INFO")    printf "  ${CLR_DIM}· %s${NC}\n" "$message" ;;
+        "WARN")    printf "  ${CLR_WARN}⚠ %s${NC}\n" "$message" ;;
+        "ERROR")   printf "\n  ${CLR_ERR}✖ error: %s${NC}\n" "$message" ;;
+        "SUCCESS") printf "  ${CLR_SUCCESS}· %s${NC}\n" "$message" ;;
+        "STEP")    printf "  ${CLR_INFO}· %s${NC}\n" "$message" ;;
     esac
 }
 
 show_progress() {
     ((CURRENT_STEP++))
-    local desc=$1
-    echo -e "
-${BG_PURPLE} ✦ STEP $CURRENT_STEP/$TOTAL_STEPS ${NC} ${B_PURPLE}───────────────────────────────────────────────────${NC}" | tee -a "$LOGFILE"
-    echo -e "${B_CYAN} ➜ ${NC} ${B_WHITE}$desc${NC}" | tee -a "$LOGFILE"
+    local desc="$1"
+    local formatted_title=$(echo "$desc" | sed 's/.*/\L&/; s/[a-z]/\U&/1; s/ \([a-z]\)/ \U\1/g')
+    
+    printf "\n${CLR_SECTION}${BOLD}▎${NC} ${BOLD}Step %d/%d: %s${NC}\n" "$CURRENT_STEP" "$TOTAL_STEPS" "$formatted_title"
 }
 
 error_handler() {

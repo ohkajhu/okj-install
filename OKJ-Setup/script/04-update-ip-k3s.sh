@@ -1,62 +1,57 @@
 #!/bin/bash
 set -euo pipefail
 
-# --- Premium UI/UX Colors ---
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
+# ─────────────────────────────────────────────────────────────────────────────
+#  PREMIUM UI/UX COLORS (Golden Standard)
+# ─────────────────────────────────────────────────────────────────────────────
+CLR_TITLE='\033[38;5;75m'    # Steel Blue
+CLR_SECTION='\033[38;5;135m'  # Soft Purple
+CLR_SUCCESS='\033[38;5;82m'   # Emerald Green
+CLR_INFO='\033[38;5;111m'    # Sky Blue
+CLR_TXT='\033[38;5;253m'     # Off White
+CLR_DIM='\033[38;5;244m'     # Muted Slate
+CLR_ERR='\033[38;5;196m'     # Crimson
+CLR_WARN='\033[38;5;214m'    # Amber
 NC='\033[0m'
-
-B_RED='\033[1;31m'
-B_GREEN='\033[1;32m'
-B_YELLOW='\033[1;33m'
-B_BLUE='\033[1;34m'
-B_PURPLE='\033[1;35m'
-B_CYAN='\033[1;36m'
-B_WHITE='\033[1;37m'
-
-BG_RED='\033[41;1;37m'
-BG_GREEN='\033[42;1;37m'
-BG_YELLOW='\033[43;1;37m'
-BG_BLUE='\033[44;1;37m'
-BG_PURPLE='\033[45;1;37m'
-BG_CYAN='\033[46;1;37m'
+BOLD='\033[1m'
 
 # --- Logging Helpers ---
+# ─────────────────────────────────────────────────────────────────────────────
+#  MINIMALIST UI FUNCTIONS
+# ─────────────────────────────────────────────────────────────────────────────
 log() {
     local level=$1
     shift
-    local message="$*"
-    local log_out="${LOGFILE:-/dev/null}"
+    local message=$(echo "$*" | tr '[:upper:]' '[:lower:]')
     
     case $level in
-        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC} $message" | tee -a "$log_out" ;;
-        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC} $message" | tee -a "$log_out" ;;
-        "ERROR")   echo -e "\n${BG_RED}${B_WHITE} ❌ ERROR ${NC} ${B_RED}$message${NC}\n" | tee -a "$log_out" ;;
-        "SUCCESS") echo -e "     ${B_GREEN}╰─ ✔${NC} ${B_GREEN}$message${NC}" | tee -a "$log_out" ;;
-        "STEP")    echo -e "${B_CYAN} ➜ ${NC} ${B_WHITE}$message${NC}" | tee -a "$log_out" ;;
+        "INFO")    printf "  ${CLR_DIM}· %s${NC}\n" "$message" ;;
+        "WARN")    printf "  ${CLR_WARN}⚠ %s${NC}\n" "$message" ;;
+        "ERROR")   printf "\n  ${CLR_ERR}✖ error: %s${NC}\n" "$message" ;;
+        "SUCCESS") printf "  ${CLR_SUCCESS}· %s${NC}\n" "$message" ;;
+        "STEP")    printf "  ${CLR_INFO}· %s${NC}\n" "$message" ;;
     esac
 }
 
 section() {
+    local icon=""
     local title="$1"
-    local clean_title=$(echo -e "$title" | sed 's/\x1b\[[0-9;]*m//g')
-    local title_len=${#clean_title}
-    local width=55
-    local pad_len=$((width - title_len))
-    [ $pad_len -lt 0 ] && pad_len=0
-    local padding=$(printf "%${pad_len}s" "")
-
-    echo -e "\n${B_PURPLE}╭──────────────────────────────────────────────────────────╮${NC}"
-    echo -e "${B_PURPLE}│${NC} ${B_WHITE}${title}${NC}${padding} ${B_PURPLE}│${NC}"
-    echo -e "${B_PURPLE}╰──────────────────────────────────────────────────────────╯${NC}"
+    if [ $# -eq 2 ]; then
+        icon="$1"
+        title="$2"
+    elif [[ "$1" =~ ^([^[:alnum:][:space:][:punct:]]+)[[:space:]]+(.*)$ ]]; then
+        icon="${BASH_REMATCH[1]}"
+        title="${BASH_REMATCH[2]}"
+    fi
+    local formatted_title=$(echo "$title" | sed 's/.*/\L&/; s/[a-z]/\U&/1; s/ \([a-z]\)/ \U\1/g')
+    if [ -z "$icon" ]; then
+        printf "\n${CLR_SECTION}${BOLD}▎${NC} ${BOLD}%s${NC}\n" "$formatted_title"
+    else
+        printf "\n${CLR_SECTION}${BOLD}▎${NC} ${icon} ${BOLD}%s${NC}\n" "$formatted_title"
+    fi
 }
 
-section "🔧 K3s IP Change & Certificate Recovery (Server)"
+section "🔧 k3s ip change & certificate recovery"
 
 # Check if k3s and kubectl commands are available
 if ! command -v k3s >/dev/null 2>&1; then
@@ -121,6 +116,6 @@ KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl rollout restart deployment -n 
 log "INFO" "   - Waiting for CoreDNS (90s timeout)..."
 KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl wait -n kube-system pod -l k8s-app=kube-dns --for=condition=ready --timeout=90s && log "SUCCESS" "✅ CoreDNS ready."
 
-section "🎉 RECOVERY COMPLETE"
+section "✨ recovery complete"
 log "INFO" "➡️ Node Status:"
 KUBECONFIG=/etc/rancher/k3s/k3s.yaml sudo kubectl get node -o wide

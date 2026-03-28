@@ -1,59 +1,54 @@
 #!/bin/bash
 set -euo pipefail
 
-# --- Premium UI/UX Colors ---
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
+# ─────────────────────────────────────────────────────────────────────────────
+#  PREMIUM UI/UX COLORS (Golden Standard)
+# ─────────────────────────────────────────────────────────────────────────────
+CLR_TITLE='\033[38;5;75m'    # Steel Blue
+CLR_SECTION='\033[38;5;135m'  # Soft Purple
+CLR_SUCCESS='\033[38;5;82m'   # Emerald Green
+CLR_INFO='\033[38;5;111m'    # Sky Blue
+CLR_TXT='\033[38;5;253m'     # Off White
+CLR_DIM='\033[38;5;244m'     # Muted Slate
+CLR_ERR='\033[38;5;196m'     # Crimson
+CLR_WARN='\033[38;5;214m'    # Amber
 NC='\033[0m'
-
-B_RED='\033[1;31m'
-B_GREEN='\033[1;32m'
-B_YELLOW='\033[1;33m'
-B_BLUE='\033[1;34m'
-B_PURPLE='\033[1;35m'
-B_CYAN='\033[1;36m'
-B_WHITE='\033[1;37m'
-
-BG_RED='\033[41;1;37m'
-BG_GREEN='\033[42;1;37m'
-BG_YELLOW='\033[43;1;37m'
-BG_BLUE='\033[44;1;37m'
-BG_PURPLE='\033[45;1;37m'
-BG_CYAN='\033[46;1;37m'
+BOLD='\033[1m'
 
 # --- Logging Helpers ---
+# ─────────────────────────────────────────────────────────────────────────────
+#  MINIMALIST UI FUNCTIONS
+# ─────────────────────────────────────────────────────────────────────────────
 log() {
     local level=$1
     shift
-    local message="$*"
-    local log_out="${LOGFILE:-/dev/null}"
+    local message=$(echo "$*" | tr '[:upper:]' '[:lower:]')
     
     case $level in
-        "INFO")    echo -e "  ${B_BLUE}ℹ [INFO]${NC} $message" | tee -a "$log_out" ;;
-        "WARN")    echo -e "  ${B_YELLOW}⚠ [WARN]${NC} $message" | tee -a "$log_out" ;;
-        "ERROR")   echo -e "\n${BG_RED}${B_WHITE} ❌ ERROR ${NC} ${B_RED}$message${NC}\n" | tee -a "$log_out" ;;
-        "SUCCESS") echo -e "     ${B_GREEN}╰─ ✔${NC} ${B_GREEN}$message${NC}" | tee -a "$log_out" ;;
-        "STEP")    echo -e "${B_CYAN} ➜ ${NC} ${B_WHITE}$message${NC}" | tee -a "$log_out" ;;
+        "INFO")    printf "  ${CLR_DIM}· %s${NC}\n" "$message" ;;
+        "WARN")    printf "  ${CLR_WARN}⚠ %s${NC}\n" "$message" ;;
+        "ERROR")   printf "\n  ${CLR_ERR}✖ error: %s${NC}\n" "$message" ;;
+        "SUCCESS") printf "  ${CLR_SUCCESS}· %s${NC}\n" "$message" ;;
+        "STEP")    printf "  ${CLR_INFO}· %s${NC}\n" "$message" ;;
     esac
 }
 
 section() {
+    local icon=""
     local title="$1"
-    local clean_title=$(echo -e "$title" | sed 's/\x1b\[[0-9;]*m//g')
-    local title_len=${#clean_title}
-    local width=55
-    local pad_len=$((width - title_len))
-    [ $pad_len -lt 0 ] && pad_len=0
-    local padding=$(printf "%${pad_len}s" "")
-
-    echo -e "\n${B_PURPLE}╭──────────────────────────────────────────────────────────╮${NC}"
-    echo -e "${B_PURPLE}│${NC} ${B_WHITE}${title}${NC}${padding} ${B_PURPLE}│${NC}"
-    echo -e "${B_PURPLE}╰──────────────────────────────────────────────────────────╯${NC}"
+    if [ $# -eq 2 ]; then
+        icon="$1"
+        title="$2"
+    elif [[ "$1" =~ ^([^[:alnum:][:space:][:punct:]]+)[[:space:]]+(.*)$ ]]; then
+        icon="${BASH_REMATCH[1]}"
+        title="${BASH_REMATCH[2]}"
+    fi
+    local formatted_title=$(echo "$title" | sed 's/.*/\L&/; s/[a-z]/\U&/1; s/ \([a-z]\)/ \U\1/g')
+    if [ -z "$icon" ]; then
+        printf "\n${CLR_SECTION}${BOLD}▎${NC} ${BOLD}%s${NC}\n" "$formatted_title"
+    else
+        printf "\n${CLR_SECTION}${BOLD}▎${NC} ${icon} ${BOLD}%s${NC}\n" "$formatted_title"
+    fi
 }
 
 # --- Check Permissions ---
@@ -68,7 +63,7 @@ KUBECONFIG_PATH="/etc/rancher/k3s/k3s.yaml"
 
 # --- Check Cluster Readiness ---
 check_cluster_readiness() {
-    section "🔍 Checking Cluster Readiness"
+    section "🔍 checking cluster readiness"
     log "INFO" "Waiting for core system pods to be healthy..."
     
     local max_attempts=30
@@ -169,11 +164,11 @@ wait_for_service_endpoints() {
     log "WARN" "⚠️ Service $service_name endpoints not ready after $max_attempts attempts."
 }
 
-section "🚀 Installing Cluster Services"
+section "🚀 installing cluster services"
 check_cluster_readiness
 
 # --- 1. PostgreSQL ---
-section "🐘 Setting up PostgreSQL"
+section "🐘 setting up postgresql"
 if ! sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get namespace pgsql &>/dev/null; then
     log "INFO" "Creating namespace: pgsql"
     sudo KUBECONFIG=$KUBECONFIG_PATH kubectl create namespace pgsql
@@ -189,7 +184,7 @@ sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/okj-pos-pgsql.yaml"
 log "SUCCESS" "PostgreSQL resources applied."
 
 # --- 2. Redis & Asynqmon ---
-section "🏮 Setting up Redis & Monitoring"
+section "🏮 setting up redis & monitoring"
 if ! sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get namespace apps &>/dev/null; then
     log "INFO" "Creating namespace: apps"
     sudo KUBECONFIG=$KUBECONFIG_PATH kubectl create namespace apps
@@ -208,7 +203,7 @@ sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/asynqmon.yaml" -n a
 log "SUCCESS" "Asynqmon resources applied."
 
 # --- 3. ConfigMaps ---
-section "⚙️ Setting up ConfigMaps"
+section "⚙️ setting up configmaps"
 log "INFO" "Applying pos-shop-terminal-cm manifests..."
 sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/configmap/pos-shop-terminal-cm.yaml" -n apps
 log "SUCCESS" "Terminal ConfigMap applied."
@@ -218,6 +213,6 @@ echo ""
 log "WARN" "⚠️  Note: pos-shop-service-cm.yaml configuration is handled in the next step."
 log "INFO" "💡 You can run Step 6 (06-config-shop.sh) to configure it interactively."
 
-section "✅ ALL SERVICES APPLIED"
+section "✨ all services applied"
 sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get pod -n pgsql
 sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get pod -n apps

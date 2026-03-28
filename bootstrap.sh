@@ -176,5 +176,5 @@ printf "  ${CLR_SUCCESS}✨ Bootstrap complete!${NC}\n"
 printf "  ${CLR_DIM}all files are ready at: %s${NC}\n\n" "$TARGET_DIR"
 
 printf "  ${BOLD}Next steps${NC}\n"
-printf "  ${CLR_DIM}1.${NC}  cd %s\n" "$TARGET_DIR"
-printf "  ${CLR_DIM}2.${NC}  ./install-all.sh\n\n"
+printf "  ${CLR_DIM}1.${NC} cd %s\n" "$TARGET_DIR"
+printf "  ${CLR_DIM}2.${NC} ./install-all.sh\n\n"

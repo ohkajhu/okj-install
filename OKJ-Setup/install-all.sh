@@ -128,6 +128,10 @@ if [ -d ".bootstrap" ]; then
     sudo "./$FLUX_SCRIPT"
     log_success "Flux installation complete."
     cd "$SCRIPT_DIR"
+
+    # เร่งสปีดให้ Flux ซิงค์ทันทีโดยไม่ต้องรอรอบเวลา
+    log_step "Triggering Flux reconcile (forcing immediate GitOps sync)..."
+    sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml flux reconcile kustomization flux-system --with-source || echo -e "${YELLOW}⚠️ Flux reconcile warning (continuing...)${NC}"
 else
     echo -e "${RED}❌ .bootstrap directory not found after extraction!${NC}"
     exit 1

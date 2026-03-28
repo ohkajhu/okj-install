@@ -53,13 +53,13 @@ check_cluster_readiness() {
         local all_pods=$(sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get pods -A --no-headers 2>/dev/null || true)
         
         # 2. Check if tools namespace has pods (it might take a while for Flux to create it)
-        local tools_pods=$(echo "$all_pods" | grep "tools" || true)
+        local tools_pods=$(echo "$all_pods" | awk '$1 == "tools"' || true)
         
-        # 3. Check for non-ready pods in system namespaces (Check READY status 1/1)
-        local non_ready_system=$(echo "$all_pods" | grep -E "kube-system|flux-system" | awk '$3 !~ /^[0-9]+\/\1$/ && $4 != "Completed" {print}' || true)
+        # 3. Check for non-ready pods in system namespaces
+        local non_ready_system=$(echo "$all_pods" | awk '$1 ~ /^(kube-system|flux-system)$/ {split($3, a, "/"); if(a[1] != a[2] || ($4 != "Running" && $4 != "Completed")) print $0}' || true)
         
-        # 4. Check for non-ready pods in tools (Check READY status 1/1, skip monitoring)
-        local non_ready_tools=$(echo "$tools_pods" | grep -vE "k8s-monitoring|alloy" | awk '$3 !~ /^[0-9]+\/\1$/ && $4 != "Completed" {print}' || true)
+        # 4. Check for non-ready pods in tools (skip monitoring stack)
+        local non_ready_tools=$(echo "$tools_pods" | grep -vE "k8s-monitoring|alloy" | awk '{split($3, a, "/"); if(a[1] != a[2] || ($4 != "Running" && $4 != "Completed")) print $0}' || true)
 
         # Logic: We must have at least SOME pods in tools, AND no system/tools pods are non-ready
         if [ -n "$tools_pods" ] && [ -z "$non_ready_system" ] && [ -z "$non_ready_tools" ]; then

@@ -71,7 +71,7 @@ while true; do
     echo ""
     printf "  ${CLR_INFO}👉 1. enter shop_code (e.g. jw101):${NC} "
     read SHOP_CODE
-    printf "  ${CLR_INFO}👉 2. enter shop_token (gateway):${NC} "
+    printf "  ${CLR_INFO}👉 2. enter shop_token (gateway/rms):${NC} "
     read SHOP_TOKEN
     
     if [ -z "$SHOP_CODE" ] || [ -z "$SHOP_TOKEN" ]; then
@@ -82,8 +82,9 @@ while true; do
     echo ""
     log "INFO" "📋 review information:"
     echo "  ──────────────────────────────────────────"
-    printf "  ${CLR_DIM}· shop_code  :${NC} %s\n" "$SHOP_CODE"
-    printf "  ${CLR_DIM}· shop_token :${NC} %s\n" "$SHOP_TOKEN"
+    printf "  ${CLR_DIM}· CONFIG_SHOP_CODE          :${NC} %s\n" "$SHOP_CODE"
+    printf "  ${CLR_DIM}· CONFIG_SHOP_GATEWAY_TOKEN :${NC} %s\n" "$SHOP_TOKEN"
+    printf "  ${CLR_DIM}· CONFIG_RMS_TOKEN          :${NC} %s\n" "$SHOP_TOKEN"
     echo "  ──────────────────────────────────────────"
     echo ""
     

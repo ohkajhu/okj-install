@@ -129,8 +129,8 @@ log "INFO" "environment: windows subsystem for linux (wsl)"
 
 # --- 0. Get Environment Choice ---
 printf "\n  ${CLR_INFO}Please select flux environment:${NC}\n"
-printf "    ${BOLD}1)${NC} staging (stg)\n"
-printf "    ${BOLD}2)${NC} production (prd)\n\n"
+printf "    ${BOLD}1)${NC} Staging (stg)\n"
+printf "    ${BOLD}2)${NC} Production (prd)\n\n"
 printf "  ${CLR_INFO}👉 select (1 or 2):${NC} "
 read ENV_CHOICE
 

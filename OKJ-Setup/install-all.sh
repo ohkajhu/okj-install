@@ -21,12 +21,12 @@ BOLD='\033[1m'
 log() {
     local level=$1
     shift
-    local message=$(echo "$*" | tr '[:upper:]' '[:lower:]')
+    local message="$*" # REMOVE lowercasing here
     
     case $level in
         "INFO")    printf "  ${CLR_DIM}· %s${NC}\n" "$message" ;;
         "WARN")    printf "  ${CLR_WARN}⚠ %s${NC}\n" "$message" ;;
-        "ERROR")   printf "\n  ${CLR_ERR}✖ error: %s${NC}\n" "$message" ;;
+        "ERROR")   printf "\n  ${CLR_ERR}✖ error: %s${NC}\n" "$(echo "$message" | tr '[:upper:]' '[:lower:]')" ;; # Keep error level msg lowercase
         "SUCCESS") printf "  ${CLR_SUCCESS}· %s${NC}\n" "$message" ;;
         "STEP")    printf "  ${CLR_INFO}· %s${NC}\n" "$message" ;;
     esac
@@ -148,13 +148,12 @@ done
 EXISTING_TENANT=$(grep "^TENANT=" /etc/environment 2>/dev/null | cut -d'=' -f2 | tr -d "'\"" || echo "")
 
 if [ -n "$EXISTING_TENANT" ]; then
-    echo ""
-    log "INFO" "detected existing tenant configuration: ${EXISTING_TENANT}"
+    printf "\n  ${CLR_DIM}· Current system tenant: ${EXISTING_TENANT}${NC}\n"
 fi
 
 while true; do
     if [ -n "$EXISTING_TENANT" ]; then
-        printf "  ${CLR_INFO}👉 enter TENANT name (press Enter to keep '${EXISTING_TENANT}'):${NC} "
+        printf "  ${CLR_INFO}👉 enter TENANT name (press Enter to use '${EXISTING_TENANT}'):${NC} "
     else
         printf "\n  ${CLR_INFO}👉 enter TENANT name:${NC} "
     fi
@@ -178,11 +177,11 @@ done
 
 # 3. Shop Configuration
 while true; do
-    printf "\n  ${CLR_INFO}👉 enter SHOP_CODE (e.g. jw101):${NC} "
+    printf "\n  ${CLR_INFO}👉 1. enter SHOP_CODE (e.g. jw101):${NC} "
     read input_shop
     export SHOP_CODE=$(echo "$input_shop" | tr -d '\r' | tr -cd '[:print:]' | xargs)
     
-    printf "  ${CLR_INFO}👉 enter SHOP_TOKEN (gateway/rms):${NC} "
+    printf "  ${CLR_INFO}👉 2. enter SHOP_TOKEN (gateway/rms):${NC} "
     read input_token
     export SHOP_TOKEN=$(echo "$input_token" | tr -d '\r' | tr -cd '[:print:]' | xargs)
     
@@ -197,10 +196,11 @@ done
 echo ""
 log "INFO" "📋 master configuration review:"
 echo "  ──────────────────────────────────────────"
-printf "  ${CLR_DIM}· FLUX_ENV      :${NC} %s\n" "$FLUX_ENV"
-printf "  ${CLR_DIM}· TENANT_NAME   :${NC} %s\n" "$TENANT_NAME"
-printf "  ${CLR_DIM}· SHOP_CODE     :${NC} %s\n" "$SHOP_CODE"
-printf "  ${CLR_DIM}· SHOP_TOKEN    :${NC} %s\n" "$SHOP_TOKEN"
+printf "  ${CLR_DIM}· FLUX_ENV           :${NC} %s\n" "$FLUX_ENV"
+printf "  ${CLR_DIM}· TENANT_NAME        :${NC} %s\n" "$TENANT_NAME"
+printf "  ${CLR_DIM}· SHOP_CODE          :${NC} %s\n" "$SHOP_CODE"
+printf "  ${CLR_DIM}· SHOP_GATEWAY_TOKEN :${NC} %s\n" "$SHOP_TOKEN"
+printf "  ${CLR_DIM}· SHOP_RMS_TOKEN     :${NC} %s\n" "$SHOP_TOKEN"
 echo "  ──────────────────────────────────────────"
 echo ""
 

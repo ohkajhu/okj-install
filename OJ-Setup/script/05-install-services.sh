@@ -201,14 +201,14 @@ log "INFO" "Applying Asynqmon manifests..."
 wait_for_ingress_webhook
 
 # Robust apply with retry for webhook TLS issues
-local max_retry=5
-local retry_count=0
+max_retry=5
+retry_count=0
 while [ $retry_count -lt $max_retry ]; do
     if sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/asynqmon.yaml" -n apps 2>/tmp/apply_err; then
         log "SUCCESS" "Asynqmon resources applied."
         break
     else
-        local err_msg=$(cat /tmp/apply_err)
+        err_msg=$(cat /tmp/apply_err)
         if [[ "$err_msg" == *"validate.nginx.ingress.kubernetes.io"* ]] && [[ "$err_msg" == *"x509"* ]]; then
             ((retry_count++))
             log "WARN" "⚠️ Webhook TLS race condition detected (attempt $retry_count/$max_retry). Waiting 10s for certificate propagation..."

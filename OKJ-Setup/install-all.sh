@@ -146,14 +146,22 @@ done
 
 # 2. Existing Tenant Check & Prompt
 EXISTING_TENANT=$(grep "^TENANT=" /etc/environment 2>/dev/null | cut -d'=' -f2 | tr -d "'\"" || echo "")
+
+if [ -n "$EXISTING_TENANT" ]; then
+    echo ""
+    log "INFO" "detected existing tenant configuration: ${EXISTING_TENANT}"
+fi
+
 while true; do
     if [ -n "$EXISTING_TENANT" ]; then
-        printf "\n  ${CLR_INFO}👉 enter TENANT name [${EXISTING_TENANT}]:${NC} "
+        printf "  ${CLR_INFO}👉 enter TENANT name (press Enter to keep '${EXISTING_TENANT}'):${NC} "
     else
         printf "\n  ${CLR_INFO}👉 enter TENANT name:${NC} "
     fi
     read input_tenant
     
+    # Sanitize input: remove carriage return, keep only printable chars, and trim whitespace
+    input_tenant=$(echo "$input_tenant" | tr -d '\r' | tr -cd '[:print:]' | xargs)
     export TENANT_NAME=${input_tenant:-$EXISTING_TENANT}
     
     if [ -z "$TENANT_NAME" ]; then
@@ -172,11 +180,11 @@ done
 while true; do
     printf "\n  ${CLR_INFO}👉 enter SHOP_CODE (e.g. jw101):${NC} "
     read input_shop
-    export SHOP_CODE=$input_shop
+    export SHOP_CODE=$(echo "$input_shop" | tr -d '\r' | tr -cd '[:print:]' | xargs)
     
     printf "  ${CLR_INFO}👉 enter SHOP_TOKEN (gateway/rms):${NC} "
     read input_token
-    export SHOP_TOKEN=$input_token
+    export SHOP_TOKEN=$(echo "$input_token" | tr -d '\r' | tr -cd '[:print:]' | xargs)
     
     if [ -z "$SHOP_CODE" ] || [ -z "$SHOP_TOKEN" ]; then
         log "WARN" "shop_code and shop_token cannot be empty"

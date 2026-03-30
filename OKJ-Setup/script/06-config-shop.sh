@@ -73,9 +73,12 @@ if [ -z "${SHOP_CODE:-}" ] || [ -z "${SHOP_TOKEN:-}" ]; then
     while true; do
         echo ""
         printf "  ${CLR_INFO}👉 1. enter shop_code (e.g. jw101):${NC} "
-        read SHOP_CODE
+        read input_shop
+        SHOP_CODE=$(echo "$input_shop" | tr -d '\r' | tr -cd '[:print:]' | xargs)
+
         printf "  ${CLR_INFO}👉 2. enter shop_token (gateway/rms):${NC} "
-        read SHOP_TOKEN
+        read input_token
+        SHOP_TOKEN=$(echo "$input_token" | tr -d '\r' | tr -cd '[:print:]' | xargs)
         
         if [ -z "$SHOP_CODE" ] || [ -z "$SHOP_TOKEN" ]; then
             log "WARN" "shop_code and shop_token cannot be empty"

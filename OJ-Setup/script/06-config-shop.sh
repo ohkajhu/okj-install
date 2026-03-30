@@ -54,6 +54,7 @@ section() {
 # --- Check Permissions ---
 if [ "$EUID" -eq 0 ]; then
    log "ERROR" "Please run this script as a regular user, not root/sudo."
+   exit 1
 fi
 
 # Get script directory
@@ -67,35 +68,40 @@ log "INFO" "This script will help you configure the Shop Code and Gateway/RMS To
 log "INFO" "Configuration File: $BASE_DIR/configmap/pos-shop-service-cm.yaml"
 echo ""
 
-while true; do
-    echo ""
-    printf "  ${CLR_INFO}👉 1. enter shop_code (e.g. jw101):${NC} "
-    read SHOP_CODE
-    printf "  ${CLR_INFO}👉 2. enter shop_token (gateway/rms):${NC} "
-    read SHOP_TOKEN
-    
-    if [ -z "$SHOP_CODE" ] || [ -z "$SHOP_TOKEN" ]; then
-        log "WARN" "shop_code and shop_token cannot be empty"
-        continue
-    fi
-    
-    echo ""
-    log "INFO" "📋 review information:"
-    echo "  ──────────────────────────────────────────"
-    printf "  ${CLR_DIM}· CONFIG_SHOP_CODE          :${NC} %s\n" "$SHOP_CODE"
-    printf "  ${CLR_DIM}· CONFIG_SHOP_GATEWAY_TOKEN :${NC} %s\n" "$SHOP_TOKEN"
-    printf "  ${CLR_DIM}· CONFIG_RMS_TOKEN          :${NC} %s\n" "$SHOP_TOKEN"
-    echo "  ──────────────────────────────────────────"
-    echo ""
-    
-    printf "  ${CLR_WARN}👉 is this correct? (y/n):${NC} "
-    read CONFIRM
-    if [[ $CONFIRM =~ ^[Yy]$ ]]; then
-        break
-    else
-        log "INFO" "resetting... please re-enter information."
-    fi
-done
+# Fallback Mechanism: Skip interactive prompt if variables are already provided
+if [ -z "${SHOP_CODE:-}" ] || [ -z "${SHOP_TOKEN:-}" ]; then
+    while true; do
+        echo ""
+        printf "  ${CLR_INFO}👉 1. enter shop_code (e.g. jw101):${NC} "
+        read SHOP_CODE
+        printf "  ${CLR_INFO}👉 2. enter shop_token (gateway/rms):${NC} "
+        read SHOP_TOKEN
+        
+        if [ -z "$SHOP_CODE" ] || [ -z "$SHOP_TOKEN" ]; then
+            log "WARN" "shop_code and shop_token cannot be empty"
+            continue
+        fi
+        
+        echo ""
+        log "INFO" "📋 review information:"
+        echo "  ──────────────────────────────────────────"
+        printf "  ${CLR_DIM}· CONFIG_SHOP_CODE          :${NC} %s\n" "$SHOP_CODE"
+        printf "  ${CLR_DIM}· CONFIG_SHOP_GATEWAY_TOKEN :${NC} %s\n" "$SHOP_TOKEN"
+        printf "  ${CLR_DIM}· CONFIG_RMS_TOKEN          :${NC} %s\n" "$SHOP_TOKEN"
+        echo "  ──────────────────────────────────────────"
+        echo ""
+        
+        printf "  ${CLR_WARN}👉 is this correct? (y/n):${NC} "
+        read CONFIRM
+        if [[ $CONFIRM =~ ^[Yy]$ ]]; then
+            break
+        else
+            log "INFO" "resetting... please re-enter information."
+        fi
+    done
+else
+    log "INFO" "Using SHOP_CODE and SHOP_TOKEN provided by orchestrator."
+fi
 
 log "INFO" "Updating configuration file using yq..."
 

@@ -127,18 +127,97 @@ section "🚀 okj pos system - master installer"
 
 log "INFO" "environment: windows subsystem for linux (wsl)"
 
-# --- 0. Get Environment Choice ---
-printf "\n  ${CLR_INFO}Please select flux environment:${NC}\n"
+# --- 0. Pre-flight Questionnaire ---
+section "📋 pre-flight questionnaire"
+
+# 1. Environment Choice
+printf "\n  ${CLR_INFO}Select flux environment:${NC}\n"
 printf "    ${BOLD}1)${NC} Staging (stg)\n"
 printf "    ${BOLD}2)${NC} Production (prd)\n\n"
-printf "  ${CLR_INFO}👉 select (1 or 2):${NC} "
-read ENV_CHOICE
+while true; do
+    printf "  ${CLR_INFO}👉 select (1 or 2):${NC} "
+    read ENV_CHOICE
+    case $ENV_CHOICE in
+        1) FLUX_SCRIPT="install-stg.sh"; FLUX_ENV="staging"; break ;;
+        2) FLUX_SCRIPT="install-prd.sh"; FLUX_ENV="production"; break ;;
+        *) log "WARN" "invalid choice." ;;
+    esac
+done
 
-case $ENV_CHOICE in
-    1) FLUX_SCRIPT="install-stg.sh"; FLUX_ENV="staging" ;;
-    2) FLUX_SCRIPT="install-prd.sh"; FLUX_ENV="production" ;;
-    *) log "ERROR" "invalid choice. installation cancelled."; exit 1 ;;
-esac
+# 2. Existing Tenant Check & Prompt
+EXISTING_TENANT=$(grep "^TENANT=" /etc/environment 2>/dev/null | cut -d'=' -f2 | tr -d "'\"" || echo "")
+while true; do
+    if [ -n "$EXISTING_TENANT" ]; then
+        printf "\n  ${CLR_INFO}👉 enter TENANT name [${EXISTING_TENANT}]:${NC} "
+    else
+        printf "\n  ${CLR_INFO}👉 enter TENANT name:${NC} "
+    fi
+    read input_tenant
+    
+    export TENANT_NAME=${input_tenant:-$EXISTING_TENANT}
+    
+    if [ -z "$TENANT_NAME" ]; then
+        log "WARN" "TENANT name cannot be empty"
+        continue
+    fi
+    
+    if [[ ! $TENANT_NAME =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        log "WARN" "TENANT name should only contain letters, numbers, -, _"
+        continue
+    fi
+    break
+done
+
+# 3. Shop Configuration
+while true; do
+    printf "\n  ${CLR_INFO}👉 enter SHOP_CODE (e.g. jw101):${NC} "
+    read input_shop
+    export SHOP_CODE=$input_shop
+    
+    printf "  ${CLR_INFO}👉 enter SHOP_TOKEN (gateway/rms):${NC} "
+    read input_token
+    export SHOP_TOKEN=$input_token
+    
+    if [ -z "$SHOP_CODE" ] || [ -z "$SHOP_TOKEN" ]; then
+        log "WARN" "shop_code and shop_token cannot be empty"
+        continue
+    fi
+    break
+done
+
+# 4. Review & Confirm
+echo ""
+log "INFO" "📋 master configuration review:"
+echo "  ──────────────────────────────────────────"
+printf "  ${CLR_DIM}· FLUX_ENV      :${NC} %s\n" "$FLUX_ENV"
+printf "  ${CLR_DIM}· TENANT_NAME   :${NC} %s\n" "$TENANT_NAME"
+printf "  ${CLR_DIM}· SHOP_CODE     :${NC} %s\n" "$SHOP_CODE"
+printf "  ${CLR_DIM}· SHOP_TOKEN    :${NC} %s\n" "$SHOP_TOKEN"
+echo "  ──────────────────────────────────────────"
+echo ""
+
+while true; do
+    printf "  ${CLR_WARN}👉 is this correct? (y/n):${NC} "
+    read CONFIRM
+    case $CONFIRM in
+        [Yy]|[Yy]es) 
+            export CONFIRM="y"
+            break 
+            ;;
+        [Nn]|[Nn]o) 
+            log "INFO" "installation cancelled."
+            exit 0 
+            ;;
+        *) log "WARN" "Please answer y or n" ;;
+    esac
+done
+
+# Cache sudo credentials upfront to prevent interruptions
+if ! sudo -n true 2>/dev/null; then
+    echo ""
+    log "INFO" "authentication required to begin installation."
+    sudo -v
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"

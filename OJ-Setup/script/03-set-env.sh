@@ -185,11 +185,15 @@ main() {
     check_permissions
     show_current_environment
     show_current_hosts
-    get_tenant_name
-    
-    if ! confirm_settings; then
-        log "WARN" "❌ Canceled settings update"
-        exit 0
+    if [ -z "${TENANT_NAME:-}" ]; then
+        get_tenant_name
+        
+        if ! confirm_settings; then
+            log "WARN" "❌ Canceled settings update"
+            exit 0
+        fi
+    else
+        log "INFO" "Using TENANT_NAME provided by orchestrator: $TENANT_NAME"
     fi
     
     create_environment_file

@@ -199,8 +199,32 @@ log "SUCCESS" "Redis resources applied."
 log "INFO" "Applying Asynqmon manifests..."
 # Ingress-nginx webhook race condition fix
 wait_for_ingress_webhook
-sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/asynqmon.yaml" -n apps
-log "SUCCESS" "Asynqmon resources applied."
+
+# Robust apply with retry for webhook TLS issues
+local max_retry=5
+local retry_count=0
+while [ $retry_count -lt $max_retry ]; do
+    if sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/asynqmon.yaml" -n apps 2>/tmp/apply_err; then
+        log "SUCCESS" "Asynqmon resources applied."
+        break
+    else
+        local err_msg=$(cat /tmp/apply_err)
+        if [[ "$err_msg" == *"validate.nginx.ingress.kubernetes.io"* ]] && [[ "$err_msg" == *"x509"* ]]; then
+            ((retry_count++))
+            log "WARN" "⚠️ Webhook TLS race condition detected (attempt $retry_count/$max_retry). Waiting 10s for certificate propagation..."
+            sleep 10
+        else
+            log "ERROR" "Failed to apply Asynqmon manifests:"
+            echo "$err_msg"
+            exit 1
+        fi
+    fi
+    
+    if [ $retry_count -eq $max_retry ]; then
+        log "ERROR" "❌ Failed to apply Asynqmon manifests after $max_retry attempts due to Webhook TLS issues."
+        exit 1
+    fi
+done
 
 # --- 3. ConfigMaps ---
 section "⚙️ setting up configmaps"

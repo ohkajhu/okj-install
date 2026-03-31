@@ -58,6 +58,7 @@ section() {
 # ── Must run as root ──────────────────────────────────────────────────────────
 if [ "$EUID" -ne 0 ]; then
     log "ERROR" "🔒 Please run as root: $0"
+    exit 1
 fi
 
 # ── Detect WSL ───────────────────────────────────────────────────────────────

@@ -307,6 +307,8 @@ while true; do
     esac
 done
 
+fi
+
 # Cache sudo credentials upfront to prevent interruptions
 if ! sudo -n true 2>/dev/null; then
     echo ""

@@ -114,13 +114,25 @@ fi
 #  HARDENING & Utility FUNCTIONS
 # ─────────────────────────────────────────────────────────────────────────────
 sudo_keep_alive() {
+    # ── Grant Temporary NOPASSWD Privilege for Zero-Prompt Experience ────────
+    # (Removed automatically by trap cleanup on exit)
+    echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/okj-install-tmp >/dev/null
+    
     while true; do
         sudo -n -v
         sleep 60
     done 2>/dev/null &
     SUDO_PID=$!
-    trap 'kill $SUDO_PID 2>/dev/null' EXIT
 }
+
+cleanup() {
+    # Kill keep-alive and remove temporary sudoers rule
+    [ -n "${SUDO_PID:-}" ] && kill "$SUDO_PID" 2>/dev/null || true
+    sudo rm -f /etc/sudoers.d/okj-install-tmp 2>/dev/null || true
+}
+
+# Ensure cleanup on ANY type of exit
+trap cleanup EXIT
 
 check_script() {
     local script_path=$1
@@ -347,16 +359,6 @@ if [ "$START_FROM_STEP" -le 3 ]; then
     check_script "./script/02-install-k3s.sh"
     sudo ./script/02-install-k3s.sh
     log "SUCCESS" "k3s cluster installation complete"
-
-    # CAUTION: The k3s installation script jumps the system clock forward 1 year 
-    # to rotate certificates, which invalidates the sudo session. we must re-authorize.
-    if ! sudo -n true 2>/dev/null; then
-        section "🔐 sudo session recovery"
-        log "WARN" "sudo session expired (time-travel detected during k3s cert rotation)"
-        log "INFO" "please re-authorize to continue the remaining steps hands-free..."
-        sudo -v && log "SUCCESS" "sudo session restored for remaining steps"
-    fi
-
     save_state 3
 fi
 

@@ -51,6 +51,35 @@ section() {
     fi
 }
 
+# --- PowerShell Wrapper with Retry Logic ---
+# ─────────────────────────────────────────────────────────────────────────────
+#  WSL-TO-WINDOWS COMMUNICATION HARDENING
+# ─────────────────────────────────────────────────────────────────────────────
+call_powershell() {
+    local cmd="$1"
+    local max_attempts=3
+    local attempt=1
+    local result=""
+    
+    while [ $attempt -le $max_attempts ]; do
+        # Try running the command, capturing only stdout and trimming whitespace/nulls
+        result=$(powershell.exe -NoProfile -NonInteractive -Command "$cmd" 2>/dev/null | tr -d '\0\r\n' || echo "")
+        
+        if [ -n "$result" ]; then
+            echo "$result"
+            return 0
+        fi
+        
+        # If it's an intermittent VSOCK error or timeout, wait and retry
+        ((attempt++))
+        if [ $attempt -le $max_attempts ]; then
+            sleep 2
+        fi
+    done
+    
+    return 1
+}
+
 section "🚀 adding wsl to windows startup"
 
 # 1. Detect current WSL Distribution name
@@ -61,7 +90,7 @@ DISTRO_NAME=${WSL_DISTRO_NAME:-}
 
 # Priority 2: PowerShell fallback if env var is empty
 if [ -z "$DISTRO_NAME" ]; then
-    DISTRO_NAME=$(powershell.exe -NoProfile -Command "wsl.exe -l -v | Select-String '\*' | ForEach-Object { \$_.ToString().Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)[1] }" | tr -d '\0\r\n' || echo "")
+    DISTRO_NAME=$(call_powershell "wsl.exe -l -v | Select-String '\*' | ForEach-Object { \$_.ToString().Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)[1] }" || echo "")
 fi
 
 # Priority 3: Final hard fallback
@@ -74,10 +103,23 @@ fi
 
 # 2. Get Windows Startup Folder path
 log "INFO" "📁 Finding Windows Startup folder..."
-WIN_STARTUP_FOLDER=$(powershell.exe -NoProfile -Command "[Environment]::GetFolderPath('Startup')" | tr -d '\r\n')
+WIN_STARTUP_FOLDER=$(call_powershell "[Environment]::GetFolderPath('Startup')" || echo "")
+
+# Priority 4: Fallback search if PowerShell fails (Intermittent VSOCK error)
+if [ -z "$WIN_STARTUP_FOLDER" ]; then
+    log "WARN" "⚠️  PowerShell unresponsive — attempting manual fallback search..."
+    
+    # Try common Windows user profile paths
+    for user_dir in /mnt/c/Users/*; do
+        # Skip 'All Users', 'Default', etc.
+        [ -d "$user_dir/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup" ] && \
+        WIN_STARTUP_FOLDER=$(printf "%s" "$user_dir/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup" | sed 's|/mnt/c/|C:\\|; s|/|\\|g') && break
+    done
+fi
 
 if [ -z "$WIN_STARTUP_FOLDER" ]; then
-    log "ERROR" "❌ Could not find Windows Startup folder."
+    log "ERROR" "❌ Could not find Windows Startup folder (even after fallback)."
+    exit 1
 fi
 
 WSL_STARTUP_PATH=$(wslpath "$WIN_STARTUP_FOLDER")

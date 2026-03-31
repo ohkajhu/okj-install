@@ -181,7 +181,10 @@ check_permissions() {
         exit 1
     fi
     
-    sudo -v > /dev/null 2>&1 || log "ERROR" "❌ sudo access denied. Please configure sudo permissions."
+    # If already authorized via master script's keep-alive, sudo -n true will succeed
+    if ! sudo -n true 2>/dev/null; then
+        sudo -v > /dev/null 2>&1 || log "ERROR" "❌ sudo access denied. Please configure sudo permissions."
+    fi
 }
 
 # Main function

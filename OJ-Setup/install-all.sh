@@ -115,7 +115,7 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 sudo_keep_alive() {
     while true; do
-        sudo -n true
+        sudo -n -v
         sleep 60
     done 2>/dev/null &
     SUDO_PID=$!

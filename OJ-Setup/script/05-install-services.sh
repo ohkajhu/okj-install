@@ -54,6 +54,7 @@ section() {
 # --- Check Permissions ---
 if [ "$EUID" -eq 0 ]; then
    log "ERROR" "Please run this script as a regular user, not root/sudo."
+   exit 1
 fi
 
 # Get script directory
@@ -61,70 +62,106 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 KUBECONFIG_PATH="/etc/rancher/k3s/k3s.yaml"
 
+# --- Robust Manifest Apply ---
+robust_apply() {
+    local manifest=$1
+    local namespace=$2
+    local max_retry=5
+    local retry_count=0
+    
+    # Verify file exists
+    if [ ! -f "$manifest" ]; then
+        log "ERROR" "Manifest file not found: $manifest"
+        exit 1
+    fi
+
+    log "INFO" "Applying manifest: $(basename "$manifest") in $namespace..."
+    
+    while [ $retry_count -lt $max_retry ]; do
+        if sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$manifest" -n "$namespace" 2>/tmp/apply_err; then
+            log "SUCCESS" "$(basename "$manifest") applied successfully."
+            return 0
+        else
+            local err_msg=$(cat /tmp/apply_err)
+            # Common transient errors: Webhook TLS, Connection refused, API timeout
+            if [[ "$err_msg" == *"x509"* ]] || [[ "$err_msg" == *"connection refused"* ]] || [[ "$err_msg" == *"timeout"* ]] || [[ "$err_msg" == *"validate.nginx.ingress.kubernetes.io"* ]]; then
+                ((retry_count++))
+                log "WARN" "⚠️ Transient error detected (attempt $retry_count/$max_retry). Waiting 10s before retry..."
+                sleep 10
+            else
+                log "ERROR" "Failed to apply $(basename "$manifest"):"
+                echo "$err_msg"
+                exit 1
+            fi
+        fi
+    done
+    
+    log "ERROR" "❌ Failed to apply $(basename "$manifest") after $max_retry attempts."
+    exit 1
+}
+
 # --- Check Cluster Readiness ---
 check_cluster_readiness() {
-    section "🔍 Checking Cluster Readiness"
+    section "🔍 checking cluster readiness"
     log "INFO" "Waiting for core system pods to be healthy..."
     
-    local max_attempts=30
+    local max_attempts=60  # Increased to 10 minutes
     local attempt=1
     
     while [ $attempt -le $max_attempts ]; do
-        # 1. Get all pods
         local all_pods=$(sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get pods -A --no-headers 2>/dev/null || true)
         
-        # 2. Check if tools namespace has pods (it might take a while for Flux to create it)
+        # Tools namespace pods (CloudNativePG, Ingress, etc.)
         local tools_pods=$(echo "$all_pods" | awk '$1 == "tools"' || true)
         
-        # 3. Check for non-ready pods in system namespaces
+        # System & Flux pods
         local non_ready_system=$(echo "$all_pods" | awk '$1 ~ /^(kube-system|flux-system)$/ {split($3, a, "/"); if(a[1] != a[2] || ($4 != "Running" && $4 != "Completed")) print $0}' || true)
         
-        # 4. Check for non-ready pods in tools (skip monitoring stack)
+        # Tools pods (excluding monitoring)
         local non_ready_tools=$(echo "$tools_pods" | grep -vE "k8s-monitoring|alloy" | awk '{split($3, a, "/"); if(a[1] != a[2] || ($4 != "Running" && $4 != "Completed")) print $0}' || true)
 
-        # Logic: We must have at least SOME pods in tools, AND no system/tools pods are non-ready
         if [ -n "$tools_pods" ] && [ -z "$non_ready_system" ] && [ -z "$non_ready_tools" ]; then
             log "SUCCESS" "✅ System and Tools namespaces are ready."
-            sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get pods -A
             return 0
         fi
         
+        if [ $attempt -eq $max_attempts ]; then
+            log "ERROR" "❌ Timeout waiting for cluster readiness after $max_attempts attempts."
+            echo "Non-ready pods found:"
+            echo -e "${non_ready_system}\n${non_ready_tools}" | grep -v "^$" || echo "None"
+            exit 1
+        fi
+
         if [ -z "$tools_pods" ]; then
-            log "INFO" "   Attempt $attempt/$max_attempts: Waiting for 'tools' namespace pods (CloudNativePG, Ingress, etc.) to start..."
+            log "INFO" "   Attempt $attempt/$max_attempts: Waiting for 'tools' namespace..."
         else
-            local non_ready_list=$(echo -e "${non_ready_system}\n${non_ready_tools}" | grep -v "^$" || true)
-            local count=$(echo "$non_ready_list" | wc -l || echo 0)
-            log "INFO" "   Attempt $attempt/$max_attempts: $count core pods are not ready yet. Waiting 10s..."
-            echo -e "$non_ready_list" | head -n 5 || true
+            local count=$(echo -e "${non_ready_system}\n${non_ready_tools}" | grep -v "^$" | wc -l || echo 0)
+            log "INFO" "   Attempt $attempt/$max_attempts: $count core pods not ready... waiting 10s"
         fi
         
         sleep 10
         ((attempt++))
     done
-    
-    log "WARN" "⚠️  Timeout waiting for system pods. Proceeding anyway..."
 }
 
 wait_for_ingress_webhook() {
-    log "INFO" "⏳ Waiting for Ingress Admission Webhook endpoints to be ready..."
+    log "INFO" "⏳ Waiting for Ingress Admission Webhook..."
     local max_attempts=20
     local attempt=1
     
     while [ $attempt -le $max_attempts ]; do
-        # Check if the admission service has endpoints
         local endpoints=$(sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get endpoints ingress-nginx-controller-admission -n tools -o jsonpath='{.subsets[0].addresses[0].ip}' 2>/dev/null || echo "")
         
         if [ -n "$endpoints" ]; then
-            log "SUCCESS" "✅ Ingress Admission Webhook is ready."
+            log "SUCCESS" "✅ Ingress Webhook endpoint ready."
             return 0
         fi
         
-        log "INFO" "     Attempt $attempt/$max_attempts: Webhook endpoints not ready yet. Waiting 5s..."
+        [ $attempt -eq $max_attempts ] && { log "ERROR" "❌ Ingress Webhook never became ready."; exit 1; }
+        
         sleep 5
         ((attempt++))
     done
-    
-    log "WARN" "⚠️ Webhook endpoints not ready after $max_attempts attempts. Retrying application may be needed."
 }
 
 wait_for_crd() {
@@ -132,12 +169,13 @@ wait_for_crd() {
     log "INFO" "⏳ Waiting for CRD: $crd..."
     for i in {1..30}; do
         if sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get crd "$crd" &>/dev/null; then
-            log "SUCCESS" "✅ CRD $crd is ready."
+            log "SUCCESS" "✅ CRD $crd ready."
             return 0
         fi
         sleep 10
     done
-    log "ERROR" "❌ Timeout waiting for CRD: $crd. CloudNativePG might still be installing."
+    log "ERROR" "❌ Timeout waiting for CRD: $crd."
+    exit 1
 }
 
 wait_for_service_endpoints() {
@@ -145,92 +183,50 @@ wait_for_service_endpoints() {
     local namespace=$2
     log "INFO" "⏳ Waiting for service endpoints: $service_name ($namespace)..."
     local max_attempts=20
-    local attempt=1
-    
-    while [ $attempt -le $max_attempts ]; do
-        # Check if the service has endpoints
+    for i in $(seq 1 $max_attempts); do
         local endpoints=$(sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get endpoints "$service_name" -n "$namespace" -o jsonpath='{.subsets[0].addresses[0].ip}' 2>/dev/null || echo "")
-        
         if [ -n "$endpoints" ]; then
-            log "SUCCESS" "✅ Service $service_name is ready."
+            log "SUCCESS" "✅ Service $service_name ready."
             return 0
         fi
-        
-        log "INFO" "     Attempt $attempt/$max_attempts: No endpoints yet. Waiting 5s..."
         sleep 5
-        ((attempt++))
     done
-    
-    log "WARN" "⚠️ Service $service_name endpoints not ready after $max_attempts attempts."
+    log "ERROR" "❌ Service $service_name endpoints not ready."
+    exit 1
 }
 
-section "🚀 Installing Cluster Services"
+# --- Main Flow ---
+section "🚀 installing cluster services"
 check_cluster_readiness
 
 # --- 1. PostgreSQL ---
-section "🐘 Setting up PostgreSQL"
+section "🐘 setting up postgresql"
 if ! sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get namespace pgsql &>/dev/null; then
     log "INFO" "Creating namespace: pgsql"
     sudo KUBECONFIG=$KUBECONFIG_PATH kubectl create namespace pgsql
-else
-    log "INFO" "Namespace 'pgsql' already exists."
 fi
 
-log "INFO" "Applying PostgreSQL manifests..."
 wait_for_crd "clusters.postgresql.cnpg.io"
-# Wait for CNPG Admission Webhook to be ready
 wait_for_service_endpoints "cnpg-webhook-service" "tools"
-sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/okj-pos-pgsql.yaml" -n pgsql
-log "SUCCESS" "PostgreSQL resources applied."
+
+robust_apply "$BASE_DIR/okj-pos-pgsql.yaml" "pgsql"
 
 # --- 2. Redis & Asynqmon ---
-section "🏮 Setting up Redis & Monitoring"
+section "🏮 setting up redis & monitoring"
 if ! sudo KUBECONFIG=$KUBECONFIG_PATH kubectl get namespace apps &>/dev/null; then
     log "INFO" "Creating namespace: apps"
     sudo KUBECONFIG=$KUBECONFIG_PATH kubectl create namespace apps
-else
-    log "INFO" "Namespace 'apps' already exists."
 fi
 
-log "INFO" "Applying Redis manifests..."
-sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/redis.yaml" -n apps
-log "SUCCESS" "Redis resources applied."
+robust_apply "$BASE_DIR/redis.yaml" "apps"
 
-log "INFO" "Applying Asynqmon manifests..."
 # Ingress-nginx webhook race condition fix
 wait_for_ingress_webhook
-
-# Robust apply with retry for webhook TLS issues
-max_retry=5
-retry_count=0
-while [ $retry_count -lt $max_retry ]; do
-    if sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/asynqmon.yaml" -n apps 2>/tmp/apply_err; then
-        log "SUCCESS" "Asynqmon resources applied."
-        break
-    else
-        err_msg=$(cat /tmp/apply_err)
-        if [[ "$err_msg" == *"validate.nginx.ingress.kubernetes.io"* ]] && [[ "$err_msg" == *"x509"* ]]; then
-            ((retry_count++))
-            log "WARN" "⚠️ Webhook TLS race condition detected (attempt $retry_count/$max_retry). Waiting 10s for certificate propagation..."
-            sleep 10
-        else
-            log "ERROR" "Failed to apply Asynqmon manifests:"
-            echo "$err_msg"
-            exit 1
-        fi
-    fi
-    
-    if [ $retry_count -eq $max_retry ]; then
-        log "ERROR" "❌ Failed to apply Asynqmon manifests after $max_retry attempts due to Webhook TLS issues."
-        exit 1
-    fi
-done
+robust_apply "$BASE_DIR/asynqmon.yaml" "apps"
 
 # --- 3. ConfigMaps ---
-section "⚙️ Setting up ConfigMaps"
-log "INFO" "Applying pos-shop-terminal-cm manifests..."
-sudo KUBECONFIG=$KUBECONFIG_PATH kubectl apply -f "$BASE_DIR/configmap/pos-shop-terminal-cm.yaml" -n apps
-log "SUCCESS" "Terminal ConfigMap applied."
+section "⚙️ setting up configmaps"
+robust_apply "$BASE_DIR/configmap/pos-shop-terminal-cm.yaml" "apps"
 
 # --- Notice ---
 echo ""

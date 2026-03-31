@@ -109,6 +109,73 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 #  MAIN EXECUTION
 # ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+#  HARDENING & UTility FUNCTIONS
+# ─────────────────────────────────────────────────────────────────────────────
+sudo_keep_alive() {
+    while true; do
+        sudo -n true
+        sleep 60
+    done 2>/dev/null &
+    SUDO_PID=$!
+    trap 'kill $SUDO_PID 2>/dev/null' EXIT
+}
+
+check_script() {
+    local script_path=$1
+    if [ ! -f "$script_path" ]; then
+        log "ERROR" "critical script missing: $script_path"
+        exit 1
+    fi
+    chmod +x "$script_path"
+}
+
+validate_essential_files() {
+    log "INFO" "verifying essential installation components..."
+    local required_files=(
+        "flux-bootstrap.tar.gz"
+        "okj-pos-pgsql.yaml"
+        "redis.yaml"
+        "asynqmon.yaml"
+    )
+    for file in "${required_files[@]}"; do
+        if [ ! -f "$file" ]; then
+            log "ERROR" "essential file missing: $file"
+            exit 1
+        fi
+    done
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  STATE MANAGEMENT (Smart Resume)
+# ─────────────────────────────────────────────────────────────────────────────
+STATE_FILE="$SCRIPT_DIR/.install_state"
+START_FROM_STEP=1
+
+save_state() {
+    local step=$1
+    cat <<EOF > "$STATE_FILE"
+START_FROM_STEP=$((step + 1))
+FLUX_ENV="$FLUX_ENV"
+FLUX_SCRIPT="$FLUX_SCRIPT"
+TENANT_NAME="$TENANT_NAME"
+SHOP_CODE="$SHOP_CODE"
+SHOP_TOKEN="$SHOP_TOKEN"
+EOF
+}
+
+load_state() {
+    if [ -f "$STATE_FILE" ]; then
+        source "$STATE_FILE"
+        return 0
+    fi
+    return 1
+}
+
+clear_state() {
+    rm -f "$STATE_FILE"
+}
+
 print_banner() {
     clear
     echo -e "${CLR_TITLE}"
@@ -125,10 +192,29 @@ print_banner() {
 print_banner
 section "🚀 okj pos system - master installer"
 
-log "INFO" "environment: ubuntu server (native)"
+# --- Check for Resume ---
+if load_state; then
+    section "🔄 interrupted installation detected"
+    log "INFO" "last successful step: $((START_FROM_STEP - 1))"
+    log "INFO" "tenant: $TENANT_NAME | shop: $SHOP_CODE"
+    printf "\n  ${CLR_WARN}👉 do you want to resume from step $START_FROM_STEP? (y/n):${NC} "
+    read RESUME_CONFIRM
+    if [[ "$RESUME_CONFIRM" =~ ^[Yy]$ ]]; then
+        log "SUCCESS" "resuming installation..."
+        RESUMING=true
+    else
+        log "INFO" "starting fresh installation..."
+        clear_state
+        START_FROM_STEP=1
+        RESUMING=false
+    fi
+else
+    RESUMING=false
+fi
 
 # --- 0. Pre-flight Questionnaire ---
-section "📋 pre-flight questionnaire"
+if [ "$RESUMING" = false ]; then
+    section "📋 pre-flight questionnaire"
 
 # 1. Environment Choice
 printf "\n  ${CLR_INFO}Select flux environment:${NC}\n"
@@ -227,67 +313,96 @@ if ! sudo -n true 2>/dev/null; then
     sudo -v
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+sudo_keep_alive
+validate_essential_files
 
 # --- 1. Step 1: Basic Tools ---
-section "🧩 installing basic tools"
-log "INFO" "running tools installation script..."
-./script/01-install-tools-k3s.sh
-log "SUCCESS" "basic tools deployment complete"
+if [ "$START_FROM_STEP" -le 1 ]; then
+    section "🧩 installing basic tools"
+    log "INFO" "running tools installation script..."
+    check_script "./script/01-install-tools-k3s.sh"
+    ./script/01-install-tools-k3s.sh
+    log "SUCCESS" "basic tools deployment complete"
+    save_state 1
+fi
 
 # --- 2. Step 2: pgAdmin4 ---
-section "📉 setup pgadmin4"
-log "INFO" "running pgadmin setup script..."
-./script/01-setup-pgadmin.sh
-log "SUCCESS" "pgadmin4 setup complete"
+if [ "$START_FROM_STEP" -le 2 ]; then
+    section "📉 setup pgadmin4"
+    log "INFO" "running pgadmin setup script..."
+    check_script "./script/01-setup-pgadmin.sh"
+    ./script/01-setup-pgadmin.sh
+    log "SUCCESS" "pgadmin4 setup complete"
+    save_state 2
+fi
 
 # --- 3. Step 3: K3s Cluster ---
-section "☸️ installing k3s cluster"
-log "INFO" "running k3s installation with sudo..."
-sudo ./script/02-install-k3s.sh
-log "SUCCESS" "k3s cluster installation complete"
+if [ "$START_FROM_STEP" -le 3 ]; then
+    section "☸️ installing k3s cluster"
+    log "INFO" "running k3s installation with sudo..."
+    check_script "./script/02-install-k3s.sh"
+    sudo ./script/02-install-k3s.sh
+    log "SUCCESS" "k3s cluster installation complete"
+    save_state 3
+fi
 
 # --- 4. Step 4: Environment Variables ---
-section "📝 setting environment & hosts"
-log "INFO" "applying environment variables..."
-./script/03-set-env.sh
-log "SUCCESS" "environment configuration set"
+if [ "$START_FROM_STEP" -le 4 ]; then
+    section "📝 setting environment & hosts"
+    log "INFO" "applying environment variables..."
+    check_script "./script/03-set-env.sh"
+    ./script/03-set-env.sh
+    log "SUCCESS" "environment configuration set"
+    save_state 4
+fi
 
 # --- 5. Step 5: Flux Bootstrap ---
-section "♾️ fluxcd bootstrap"
-log "STEP" "extracting flux-bootstrap components..."
-cd "$HOME"
-tar -xvf "$HOME/okj-install/flux-bootstrap.tar.gz" --no-same-owner --no-same-permissions >/dev/null
+if [ "$START_FROM_STEP" -le 5 ]; then
+    section "♾️ fluxcd bootstrap"
+    log "STEP" "extracting flux-bootstrap components..."
+    cd "$HOME"
+    tar -xvf "$HOME/okj-install/flux-bootstrap.tar.gz" --no-same-owner --no-same-permissions >/dev/null
 
-if [ -d ".bootstrap" ]; then
-    cd .bootstrap
-    log "INFO" "installing fluxcd ($FLUX_SCRIPT)..."
-    sudo "./$FLUX_SCRIPT"
-    log "SUCCESS" "fluxcd installation complete"
-    cd "$SCRIPT_DIR"
+    if [ -d ".bootstrap" ]; then
+        cd .bootstrap
+        log "INFO" "installing fluxcd ($FLUX_SCRIPT)..."
+        sudo "./$FLUX_SCRIPT"
+        log "SUCCESS" "fluxcd installation complete"
+        cd "$SCRIPT_DIR"
 
-    log "INFO" "triggering immediate gitops sync..."
-    sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml flux reconcile kustomization flux-system --with-source >/dev/null 2>&1 || true
-else
-    log "ERROR" "bootstrap directory not found after extraction!"
-    exit 1
+        log "INFO" "triggering immediate gitops sync..."
+        sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml flux reconcile kustomization flux-system --with-source >/dev/null 2>&1 || true
+    else
+        log "ERROR" "bootstrap directory not found after extraction!"
+        exit 1
+    fi
+    save_state 5
 fi
 
 # --- 6. Step 6: Cluster Services ---
-section "🚀 installing cluster services"
-log "INFO" "running services deployment..."
-./script/05-install-services.sh
-log "SUCCESS" "cluster services deployment initiated"
+if [ "$START_FROM_STEP" -le 6 ]; then
+    section "🚀 installing cluster services"
+    log "INFO" "running services deployment..."
+    check_script "./script/05-install-services.sh"
+    ./script/05-install-services.sh
+    log "SUCCESS" "cluster services deployment initiated"
+    save_state 6
+fi
 
 # --- 7. Step 7: Shop Configuration ---
-section "🏪 shop configuration"
-log "INFO" "applying shop-specific settings..."
-./script/06-config-shop.sh
-log "SUCCESS" "shop configuration complete"
+if [ "$START_FROM_STEP" -le 7 ]; then
+    section "🏪 shop configuration"
+    log "INFO" "applying shop-specific settings..."
+    check_script "./script/06-config-shop.sh"
+    ./script/06-config-shop.sh
+    log "SUCCESS" "shop configuration complete"
+    save_state 7
+fi
 
 # --- 8. Final Steps: Summary ---
 create_summary_file "Ubuntu Server (Native)" "$FLUX_ENV"
+clear_state
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  COMPLETION

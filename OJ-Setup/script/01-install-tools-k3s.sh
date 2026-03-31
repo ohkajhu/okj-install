@@ -125,6 +125,22 @@ check_network() {
     log "SUCCESS" "✅ Internet connection is stable."
 }
 
+wait_for_apt_lock() {
+    log "INFO" "🔒 Checking for package manager lock..."
+    local delay=5
+    local max_wait=300
+    local waited=0
+    while sudo fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1; do
+        if [ $waited -ge $max_wait ]; then
+            log "ERROR" "❌ Package manager is still locked after ${max_wait}s. Please check for other running updates."
+            exit 1
+        fi
+        log "WARN" "⚠️ Package manager is locked by another process. Waiting ${delay}s... (${waited}/${max_wait}s)"
+        sleep $delay
+        ((waited+=delay))
+    done
+}
+
 check_dependencies() {
     log "INFO" "🔍 Checking basic dependencies..."
     
@@ -140,6 +156,7 @@ check_dependencies() {
     if [ ${#missing[@]} -ne 0 ]; then
         log "WARN" "⚠️ Missing dependencies: ${missing[*]}"
         log "INFO" "📦 Installing dependencies..."
+        wait_for_apt_lock
         sudo apt update -qq
         sudo apt install -y "${missing[@]}"
     fi
@@ -212,6 +229,7 @@ compare_versions() {
 update_system() {
     show_progress "🔄 Updating system..."
     
+    wait_for_apt_lock
     log "INFO" "📦 Updating package lists..."
     sudo apt update -qq
     
@@ -232,6 +250,7 @@ install_desktop() {
         log "INFO" "✅ XFCE4 is already installed."
     else
         log "INFO" "📦 Installing XFCE4..."
+        wait_for_apt_lock
         sudo apt install -y xfce4 xfce4-goodies -qq
     fi
     
@@ -239,6 +258,7 @@ install_desktop() {
         log "INFO" "✅ XRDP is already installed."
     else
         log "INFO" "📦 Installing XRDP..."
+        wait_for_apt_lock
         sudo apt install -y xrdp -qq
     fi
     
@@ -265,6 +285,7 @@ install_browser() {
     if [ "$ARCH" != "amd64" ]; then
         log "WARN" "⚠️ Google Chrome .deb is only available for amd64 (x64). Your architecture is: $ARCH."
         log "INFO" "📦 Falling back to Firefox via apt..."
+        wait_for_apt_lock
         sudo apt install -y firefox -qq
         return 0
     fi
@@ -274,6 +295,7 @@ install_browser() {
     
     if wget -q --show-progress "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb" -O "$chrome_deb"; then
         log "INFO" "📦 Installing Google Chrome (Direct .deb - No Snap)..."
+        wait_for_apt_lock
         # dpkg might fail dependencies, apt install -f fixes them
         sudo dpkg -i "$chrome_deb" 2>/dev/null || sudo apt install -f -y -qq
         
@@ -296,6 +318,7 @@ install_git() {
         log "INFO" "✅ Git is already installed (Version: $version)"
     else
         log "INFO" "📦 Installing Git..."
+        wait_for_apt_lock
         sudo apt install -y git git-lfs -qq
         
         if is_installed git; then
@@ -309,6 +332,7 @@ install_git() {
     
     # Install additional useful Git tools
     log "INFO" "📦 Installing additional Git tools..."
+    wait_for_apt_lock
     sudo apt install -y git-flow tig -qq
     
     log "SUCCESS" "✅ Git and additional tools installed successfully."
@@ -323,6 +347,7 @@ install_ssh() {
         log "INFO" "✅ SSH client is already installed (Version: $version)"
     else
         log "INFO" "📦 Installing SSH client..."
+        wait_for_apt_lock
         sudo apt install -y openssh-client -qq
     fi
     
@@ -331,6 +356,7 @@ install_ssh() {
         log "INFO" "✅ SSH server is already running."
     else
         log "INFO" "📦 Installing SSH server..."
+        wait_for_apt_lock
         sudo apt install -y openssh-server -qq
         
         log "INFO" "🔧 Configuring SSH server..."
@@ -505,6 +531,7 @@ install_curl() {
         cd "curl-${version_number}"
         
         log "INFO" "📦 Installing build dependencies..."
+        wait_for_apt_lock
         sudo apt install -y build-essential autoconf libtool pkg-config \
             libssl-dev libnghttp2-dev libbrotli-dev zlib1g-dev libidn2-0-dev \
             libpsl-dev libssh2-1-dev ca-certificates -qq
@@ -595,6 +622,7 @@ install_anydesk() {
 
     # Install Desktop Environment (XFCE)
     log "INFO" "🖥️ Installing XFCE Desktop Environment..."
+    wait_for_apt_lock
     DEBIAN_FRONTEND=noninteractive sudo apt install --no-install-recommends -y \
       xfce4 \
       lightdm lightdm-gtk-greeter \
@@ -637,6 +665,7 @@ install_anydesk() {
     # (Optional) Remove GNOME to save resources
     if dpkg -l | grep -q gnome-shell; then
         log "INFO" "  └─ Removing GNOME to save resources..."
+        wait_for_apt_lock
         sudo apt remove --purge -y ubuntu-desktop gnome-shell gdm3 &>/dev/null || true
         sudo apt autoremove -y &>/dev/null
     fi
@@ -678,6 +707,7 @@ install_anydesk() {
         cd /tmp
         wget -q https://storage.googleapis.com/ttm-infra-public/anydesk/anydesk_7.1.1-1_amd64.deb
 
+        wait_for_apt_lock
         sudo apt install -f -y &>/dev/null
         sudo dpkg -i anydesk_7.1.1-1_amd64.deb &>/dev/null || sudo apt install -f -y &>/dev/null
 

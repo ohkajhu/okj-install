@@ -134,21 +134,6 @@ else
     log "WARN" "tools uninstallation script not found, skipping..."
 fi
 
-# --- 4. Final Steps: Environment Cleanup ---
-section "🧹 cleaning environment variables"
-log "INFO" "removing okj configurations from /etc/environment..."
-sudo sed -i '/TENANT/d' /etc/environment || true
-sudo sed -i '/SHOP_CODE/d' /etc/environment || true
-sudo sed -i '/SHOP_ENV/d' /etc/environment || true
-sudo sed -i '/RMS_TOKEN/d' /etc/environment || true
-sudo sed -i '/GATEWAY_TOKEN/d' /etc/environment || true
-sudo sed -i '/FLUX_ENV/d' /etc/environment || true
-
-log "INFO" "cleaning okj definitions from /etc/hosts..."
-sudo sed -i '/okj-failover/d' /etc/hosts || true
-
-log "SUCCESS" "system environment variables cleaned"
-
 # ─────────────────────────────────────────────────────────────────────────────
 #  COMPLETION
 # ─────────────────────────────────────────────────────────────────────────────

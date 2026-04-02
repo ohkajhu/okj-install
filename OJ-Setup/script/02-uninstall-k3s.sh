@@ -77,7 +77,7 @@ run_or_skip systemctl disable k3s
 # 2. Run uninstall script
 if [ -x /usr/local/bin/k3s-uninstall.sh ]; then
     log "INFO" "🧹 Running official K3s uninstall script..."
-    /usr/local/bin/k3s-uninstall.sh
+    [ -x /usr/local/bin/k3s-uninstall.sh ] && /usr/local/bin/k3s-uninstall.sh || true
 else
     log "WARN" "⚠️ K3s uninstall script not found, continuing with manual cleanup..."
 fi

@@ -75,6 +75,11 @@ if ! sudo -n true 2>/dev/null; then
     sudo -v
 fi
 
+# Keep sudo alive in the background
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+SUDO_ALIVE_PID=$!
+trap 'kill $SUDO_ALIVE_PID 2>/dev/null || true' EXIT
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  MAIN EXECUTION
 # ─────────────────────────────────────────────────────────────────────────────
@@ -109,7 +114,9 @@ fi
 section "📉 removing pgadmin4"
 if [ -f "./script/01-uninstall-pgadmin.sh" ]; then
     log "INFO" "running pgadmin uninstallation script..."
-    echo "y" | ./script/01-uninstall-pgadmin.sh
+    ./script/01-uninstall-pgadmin.sh <<EOF
+y
+EOF
     log "SUCCESS" "pgadmin4 successfully removed"
 else
     log "WARN" "pgadmin uninstallation script not found, skipping..."
@@ -119,7 +126,9 @@ fi
 section "🧩 removing basic tools & dependencies"
 if [ -f "./script/01-uninstall-tools-k3s.sh" ]; then
     log "INFO" "running tools uninstallation script..."
-    echo "y" | ./script/01-uninstall-tools-k3s.sh
+    ./script/01-uninstall-tools-k3s.sh <<EOF
+y
+EOF
     log "SUCCESS" "basic tools and dependencies successfully removed"
 else
     log "WARN" "tools uninstallation script not found, skipping..."

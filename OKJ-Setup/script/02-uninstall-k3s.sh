@@ -62,6 +62,7 @@ log "SUCCESS" "✅ Pre-cleanup complete."
 # Check root
 if [ "$(id -u)" -ne 0 ]; then
     log "ERROR" "🔒 Please run this script as root (use sudo)."
+    exit 1
 fi
 
 # Function helper
@@ -85,7 +86,12 @@ fi
 # 3. Kill processes
 log "INFO" "🧨 Killing remaining K3s processes..."
 for p in k3s containerd kubelet; do
-    run_or_skip pkill -f "$p"
+    # Use pgrep to find PIDs and exclude the current process and its parent
+    # This prevents the script from killing itself or the sudo process that started it
+    PIDS=$(pgrep -f "$p" | grep -v -E "^($$|$PPID)$" || true)
+    if [ -n "$PIDS" ]; then
+        echo "$PIDS" | xargs -r kill -9 2>/dev/null || true
+    fi
 done
 
 # 4. Show binaries

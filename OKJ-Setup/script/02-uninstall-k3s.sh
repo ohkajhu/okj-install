@@ -86,9 +86,12 @@ fi
 # 3. Kill processes
 log "INFO" "🧨 Killing remaining K3s processes..."
 for p in k3s containerd kubelet; do
-    # Use pgrep to find PIDs and exclude the current process and its parent
-    # This prevents the script from killing itself or the sudo process that started it
-    PIDS=$(pgrep -f "$p" | grep -v -E "^($$|$PPID)$" || true)
+    # 1. First try exact name match (safest, won't match script arguments)
+    run_or_skip pkill -x "$p"
+    
+    # 2. Then try a more aggressive pgrep but explicitly exclude any shell scripts (.sh)
+    # and exclude the current process and its parent
+    PIDS=$(pgrep -af "$p" | grep -v "\.sh" | grep -v -E "^($$|$PPID)" | awk '{print $1}' || true)
     if [ -n "$PIDS" ]; then
         echo "$PIDS" | xargs -r kill -9 2>/dev/null || true
     fi

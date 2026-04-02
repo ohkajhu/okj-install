@@ -626,7 +626,7 @@ install_anydesk() {
     DEBIAN_FRONTEND=noninteractive sudo apt install --no-install-recommends -y \
       xfce4 \
       lightdm lightdm-gtk-greeter \
-      xorg dbus-x11 &>/dev/null
+      xorg dbus-x11 x11-xserver-utils &>/dev/null
 
     # Set graphical target
     log "INFO" "⚙️ Setting graphical target..."
@@ -674,6 +674,99 @@ install_anydesk() {
     log "INFO" "  └─ Restart LightDM..."
     sudo systemctl restart lightdm || true
     sleep 10
+
+    # Force a stable virtual display for headless machines.
+    log "INFO" "🖥️ Configuring headless virtual display (1600x900)..."
+    sudo mkdir -p /etc/X11/xorg.conf.d
+    sudo tee /etc/X11/xorg.conf.d/10-headless-monitor.conf >/dev/null <<'EOF'
+Section "Monitor"
+    Identifier "Monitor0"
+    HorizSync 28.0-80.0
+    VertRefresh 48.0-75.0
+    Modeline "1600x900_60.00" 118.25 1600 1696 1864 2128 900 901 904 932 -hsync +vsync
+EndSection
+
+Section "Device"
+    Identifier "Card0"
+    Driver "dummy"
+    VideoRam 256000
+EndSection
+
+Section "Screen"
+    Identifier "Screen0"
+    Device "Card0"
+    Monitor "Monitor0"
+    DefaultDepth 24
+    SubSection "Display"
+        Depth 24
+        Modes "1600x900_60.00"
+    EndSubSection
+EndSection
+
+Section "ServerLayout"
+    Identifier "Layout0"
+    Screen "Screen0"
+EndSection
+EOF
+
+    sudo tee /usr/local/bin/okj-headless-display.sh >/dev/null <<'EOF'
+#!/bin/bash
+export DISPLAY=:0
+
+if command -v xrandr >/dev/null 2>&1; then
+    xrandr --newmode "1600x900_60.00" 118.25 1600 1696 1864 2128 900 901 904 932 -hsync +vsync 2>/dev/null || true
+    output_name=$(xrandr --query | awk '/ connected/{print $1; exit}')
+    if [ -n "$output_name" ]; then
+        xrandr --addmode "$output_name" "1600x900_60.00" 2>/dev/null || true
+        xrandr --output "$output_name" --mode "1600x900_60.00" 2>/dev/null || true
+    fi
+fi
+EOF
+    sudo chmod +x /usr/local/bin/okj-headless-display.sh
+
+    sudo mkdir -p /etc/lightdm/lightdm.conf.d
+    sudo tee /etc/lightdm/lightdm.conf.d/50-headless.conf >/dev/null <<'EOF'
+[Seat:*]
+display-setup-script=/usr/local/bin/okj-headless-display.sh
+EOF
+
+    # Run a second-pass resolution fix in user session (avoids X authorization issues).
+    sudo tee /usr/local/bin/okj-force-resolution.sh >/dev/null <<'EOF'
+#!/bin/bash
+set -e
+export DISPLAY=:0
+
+# Wait for X session to become ready.
+for _ in $(seq 1 30); do
+    xrandr --query >/dev/null 2>&1 && break
+    sleep 1
+done
+
+output_name=$(xrandr --query | awk '/ connected/{print $1; exit}')
+if [ -z "$output_name" ]; then
+    exit 0
+fi
+
+# Prefer 1600x900 on headless AnyDesk sessions (fallback if driver lacks the mode).
+if xrandr --query | grep -q "1600x900"; then
+    xrandr --output "$output_name" --mode "1600x900" >/dev/null 2>&1 || true
+elif xrandr --query | grep -q "1366x768"; then
+    xrandr --output "$output_name" --mode "1366x768" >/dev/null 2>&1 || true
+elif xrandr --query | grep -q "1920x1080"; then
+    xrandr --output "$output_name" --mode "1920x1080" >/dev/null 2>&1 || true
+fi
+EOF
+    sudo chmod +x /usr/local/bin/okj-force-resolution.sh
+
+    sudo tee /etc/xdg/autostart/okj-force-resolution.desktop >/dev/null <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=OKJ Force Resolution
+Exec=/usr/local/bin/okj-force-resolution.sh
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
+EOF
 
     # Check if AnyDesk is already installed
     log "INFO" ""
